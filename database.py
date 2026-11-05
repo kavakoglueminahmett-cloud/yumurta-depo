@@ -52,50 +52,58 @@ def init_db():
         );
 
         CREATE TABLE IF NOT EXISTS purchases (
-            id          INTEGER   PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER   NOT NULL,
-            egg_type_id INTEGER   NOT NULL,
-            supplier_id INTEGER   NOT NULL,
-            quantity    INTEGER   NOT NULL,
-            unit_price  REAL      NOT NULL,
-            total_price REAL      NOT NULL,
-            paid_amount REAL      NOT NULL DEFAULT 0,
-            date        TEXT      NOT NULL,
-            note        TEXT      DEFAULT '',
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            id             INTEGER   PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER   NOT NULL,
+            egg_type_id    INTEGER   NOT NULL,
+            supplier_id    INTEGER   NOT NULL,
+            quantity       INTEGER   NOT NULL,
+            unit_price     REAL      NOT NULL,
+            total_price    REAL      NOT NULL,
+            paid_amount    REAL      NOT NULL DEFAULT 0,
+            payment_method TEXT      NOT NULL DEFAULT 'Nakit',
+            date           TEXT      NOT NULL,
+            note           TEXT      DEFAULT '',
+            created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id)     REFERENCES users(id),
             FOREIGN KEY (egg_type_id) REFERENCES egg_types(id),
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
         );
 
         CREATE TABLE IF NOT EXISTS sales (
-            id          INTEGER   PRIMARY KEY AUTOINCREMENT,
-            user_id     INTEGER   NOT NULL,
-            egg_type_id INTEGER   NOT NULL,
-            buyer_id    INTEGER   NOT NULL,
-            quantity    INTEGER   NOT NULL,
-            unit_price  REAL      NOT NULL,
-            total_price REAL      NOT NULL,
-            paid_amount REAL      NOT NULL DEFAULT 0,
-            date        TEXT      NOT NULL,
-            note        TEXT      DEFAULT '',
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            id             INTEGER   PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER   NOT NULL,
+            egg_type_id    INTEGER   NOT NULL,
+            buyer_id       INTEGER   NOT NULL,
+            quantity       INTEGER   NOT NULL,
+            unit_price     REAL      NOT NULL,
+            total_price    REAL      NOT NULL,
+            paid_amount    REAL      NOT NULL DEFAULT 0,
+            payment_method TEXT      NOT NULL DEFAULT 'Nakit',
+            date           TEXT      NOT NULL,
+            note           TEXT      DEFAULT '',
+            created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id)     REFERENCES users(id),
             FOREIGN KEY (egg_type_id) REFERENCES egg_types(id),
             FOREIGN KEY (buyer_id)    REFERENCES buyers(id)
         );
     """)
 
-    # -- Migration: paid_amount sütunu yoksa ekle ve eski kayıtları güncelle --
+    # -- Migration: paid_amount ve payment_method sütunlarını kontrol et --
     purchases_cols = [c[1] for c in cursor.execute("PRAGMA table_info(purchases)").fetchall()]
     if "paid_amount" not in purchases_cols:
         cursor.execute("ALTER TABLE purchases ADD COLUMN paid_amount REAL NOT NULL DEFAULT 0")
         cursor.execute("UPDATE purchases SET paid_amount = total_price")
+    if "payment_method" not in purchases_cols:
+        cursor.execute("ALTER TABLE purchases ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'Nakit'")
+        cursor.execute("UPDATE purchases SET payment_method = 'Nakit'")
 
     sales_cols = [c[1] for c in cursor.execute("PRAGMA table_info(sales)").fetchall()]
     if "paid_amount" not in sales_cols:
         cursor.execute("ALTER TABLE sales ADD COLUMN paid_amount REAL NOT NULL DEFAULT 0")
         cursor.execute("UPDATE sales SET paid_amount = total_price")
+    if "payment_method" not in sales_cols:
+        cursor.execute("ALTER TABLE sales ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'Nakit'")
+        cursor.execute("UPDATE sales SET payment_method = 'Nakit'")
 
     # -- Varsayılan kullanıcılar --
     if cursor.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
@@ -196,27 +204,35 @@ def get_stock_for_type(egg_type_id):
 #  TEDARİK (ALIŞ)
 # ═══════════════════════════════════════════════════════════
 
-def add_purchase(user_id, egg_type_id, supplier_id, quantity, unit_price, paid_amount, date, note=""):
+def add_purchase(user_id, egg_type_id, supplier_id, quantity, unit_price, paid_amount, payment_method, date, note=""):
     total_price = quantity * unit_price
     if paid_amount is None or paid_amount < 0:
         paid_amount = total_price
+    if not payment_method:
+        payment_method = "Nakit"
     conn = get_db()
     conn.execute(
         """INSERT INTO purchases
-           (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, paid_amount, date, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, paid_amount, date, note),
+           (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, paid_amount, payment_method, date, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, paid_amount, payment_method, date, note),
     )
     conn.commit()
     conn.close()
 
 
-def update_purchase_payment(purchase_id, user_id, new_paid_amount):
+def update_purchase_payment(purchase_id, user_id, new_paid_amount, payment_method=None):
     conn = get_db()
-    conn.execute(
-        "UPDATE purchases SET paid_amount = ? WHERE id = ? AND user_id = ?",
-        (new_paid_amount, purchase_id, user_id)
-    )
+    if payment_method:
+        conn.execute(
+            "UPDATE purchases SET paid_amount = ?, payment_method = ? WHERE id = ? AND user_id = ?",
+            (new_paid_amount, payment_method, purchase_id, user_id)
+        )
+    else:
+        conn.execute(
+            "UPDATE purchases SET paid_amount = ? WHERE id = ? AND user_id = ?",
+            (new_paid_amount, purchase_id, user_id)
+        )
     conn.commit()
     conn.close()
 
@@ -255,7 +271,7 @@ def delete_purchase(purchase_id, user_id):
 #  SATIŞ
 # ═══════════════════════════════════════════════════════════
 
-def add_sale(user_id, egg_type_id, buyer_id, quantity, unit_price, paid_amount, date, note=""):
+def add_sale(user_id, egg_type_id, buyer_id, quantity, unit_price, paid_amount, payment_method, date, note=""):
     current_stock = get_stock_for_type(egg_type_id)
     if quantity > current_stock:
         return False, f"Yetersiz stok! Mevcut: {current_stock} adet"
@@ -263,25 +279,34 @@ def add_sale(user_id, egg_type_id, buyer_id, quantity, unit_price, paid_amount, 
     total_price = quantity * unit_price
     if paid_amount is None or paid_amount < 0:
         paid_amount = total_price
+    if not payment_method:
+        payment_method = "Nakit"
     conn = get_db()
     conn.execute(
         """INSERT INTO sales
-           (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, paid_amount, date, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, paid_amount, date, note),
+           (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, paid_amount, payment_method, date, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, paid_amount, payment_method, date, note),
     )
     conn.commit()
     conn.close()
     return True, "Satış başarıyla kaydedildi."
 
 
-def update_sale_payment(sale_id, user_id, new_paid_amount):
+def update_sale_payment(sale_id, user_id, new_paid_amount, payment_method=None):
     conn = get_db()
-    conn.execute(
-        "UPDATE sales SET paid_amount = ? WHERE id = ? AND user_id = ?",
-        (new_paid_amount, sale_id, user_id)
-    )
+    if payment_method:
+        conn.execute(
+            "UPDATE sales SET paid_amount = ?, payment_method = ? WHERE id = ? AND user_id = ?",
+            (new_paid_amount, payment_method, sale_id, user_id)
+        )
+    else:
+        conn.execute(
+            "UPDATE sales SET paid_amount = ? WHERE id = ? AND user_id = ?",
+            (new_paid_amount, sale_id, user_id)
+        )
     conn.commit()
+    conn.close()
     conn.close()
 
 

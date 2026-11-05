@@ -88,14 +88,23 @@
                                    min="0" step="0.01" placeholder="Tahsil Edilen" id="s_paid">
                             <small class="text-muted" id="s_rec_hint">Kalan alacak: 0.00 ₺</small>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-credit-card me-1"></i> Tahsilat Türü
+                            </label>
+                            <select class="form-select fw-semibold" name="payment_method">
+                                <option value="Nakit" selected>💵 Nakit</option>
+                                <option value="Kart">💳 Kart</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-calendar me-1"></i> Tarih
                             </label>
                             <input type="date" class="form-control" name="date"
                                    value="{{ today }}" required>
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-6">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-chat-text me-1"></i> Not (Opsiyonel)
                             </label>
@@ -133,6 +142,7 @@
                                 <th class="text-end">Toplam ₺</th>
                                 <th class="text-end">Tahsil ₺</th>
                                 <th class="text-end">Kalan Alacak ₺</th>
+                                <th class="text-center">Tahsilat Türü</th>
                                 <th>Durum</th>
                                 <th>Not</th>
                                 <th class="text-center">İşlem</th>
@@ -152,6 +162,13 @@
                                 <td class="text-end text-success fw-semibold">{{ "%.2f"|format(s.paid_amount) }} ₺</td>
                                 <td class="text-end fw-bold {% if rec > 0.01 %}text-danger{% else %}text-muted{% endif %}">
                                     {{ "%.2f"|format(rec) }} ₺
+                                </td>
+                                <td class="text-center">
+                                    {% if s.payment_method == 'Kart' %}
+                                    <span class="badge bg-info-subtle text-dark border"><i class="bi bi-credit-card me-1"></i>Kart</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-subtle text-dark border"><i class="bi bi-cash me-1"></i>Nakit</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if rec <= 0.01 %}
@@ -195,7 +212,13 @@
                                                     <input type="number" step="0.01" min="0" max="{{ s.total_price }}"
                                                            class="form-control form-control-lg" name="paid_amount"
                                                            value="{{ s.paid_amount }}" required>
-                                                    <div class="form-text">Müşteri tamamını ödediyse {{ "%.2f"|format(s.total_price) }} ₺ yazın.</div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Tahsilat Türü</label>
+                                                    <select class="form-select" name="payment_method">
+                                                        <option value="Nakit" {% if s.payment_method != 'Kart' %}selected{% endif %}>💵 Nakit</option>
+                                                        <option value="Kart" {% if s.payment_method == 'Kart' %}selected{% endif %}>💳 Kart</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                             <div class="modal-footer">
