@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-10">
+    <div class="col-lg-11 col-xl-10">
 
         <h2 class="fw-bold mb-4">
             <i class="bi bi-cash-coin text-primary me-2"></i> Satış Girişi
@@ -18,7 +18,7 @@
         {% endif %}
 
         <!-- Güncel Stok Bilgisi -->
-        <div class="alert alert-info border-0 shadow-sm d-flex flex-wrap gap-3 align-items-center">
+        <div class="alert alert-info border-0 shadow-sm d-flex flex-wrap gap-3 align-items-center mb-4">
             <strong><i class="bi bi-info-circle me-1"></i> Güncel Stok:</strong>
             {% for item in stock %}
             <span class="badge
@@ -77,17 +77,25 @@
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-calculator me-1"></i> Toplam Tutar
                             </label>
-                            <input type="text" class="form-control bg-light" id="s_total"
+                            <input type="text" class="form-control bg-light fw-bold" id="s_total"
                                    readonly placeholder="0.00 ₺">
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label fw-semibold text-primary">
+                                <i class="bi bi-cash me-1"></i> Tahsil Edilen (₺)
+                            </label>
+                            <input type="number" class="form-control border-primary" name="paid_amount"
+                                   min="0" step="0.01" placeholder="Tahsil Edilen" id="s_paid">
+                            <small class="text-muted" id="s_rec_hint">Kalan alacak: 0.00 ₺</small>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-calendar me-1"></i> Tarih
                             </label>
                             <input type="date" class="form-control" name="date"
                                    value="{{ today }}" required>
                         </div>
-                        <div class="col-12">
+                        <div class="col-md-8">
                             <label class="form-label fw-semibold">
                                 <i class="bi bi-chat-text me-1"></i> Not (Opsiyonel)
                             </label>
@@ -106,10 +114,11 @@
 
         <!-- Satış Geçmişi -->
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-primary bg-opacity-10 border-0">
+            <div class="card-header bg-primary bg-opacity-10 border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-primary">
                     <i class="bi bi-clock-history me-1"></i> Satış Geçmişim
                 </h5>
+                <span class="badge bg-primary">{{ sales|length }} Satış</span>
             </div>
             <div class="card-body p-0">
                 {% if sales %}
@@ -121,14 +130,17 @@
                                 <th>Alıcı</th>
                                 <th>Çeşit</th>
                                 <th class="text-end">Adet</th>
-                                <th class="text-end">Birim ₺</th>
                                 <th class="text-end">Toplam ₺</th>
+                                <th class="text-end">Tahsil ₺</th>
+                                <th class="text-end">Kalan Alacak ₺</th>
+                                <th>Durum</th>
                                 <th>Not</th>
                                 <th class="text-center">İşlem</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for s in sales %}
+                            {% set rec = s.total_price - s.paid_amount %}
                             <tr>
                                 <td>{{ s.date }}</td>
                                 <td class="fw-semibold">{{ s.buyer_name }}</td>
@@ -136,18 +148,64 @@
                                     <span class="badge bg-light text-dark">{{ s.egg_type_name }}</span>
                                 </td>
                                 <td class="text-end">{{ s.quantity }}</td>
-                                <td class="text-end">{{ "%.2f"|format(s.unit_price) }}</td>
-                                <td class="text-end fw-bold text-primary">{{ "%.2f"|format(s.total_price) }}</td>
+                                <td class="text-end fw-bold">{{ "%.2f"|format(s.total_price) }} ₺</td>
+                                <td class="text-end text-success fw-semibold">{{ "%.2f"|format(s.paid_amount) }} ₺</td>
+                                <td class="text-end fw-bold {% if rec > 0.01 %}text-danger{% else %}text-muted{% endif %}">
+                                    {{ "%.2f"|format(rec) }} ₺
+                                </td>
+                                <td>
+                                    {% if rec <= 0.01 %}
+                                    <span class="badge bg-success-subtle text-success">Tam Tahsil</span>
+                                    {% elif s.paid_amount > 0 %}
+                                    <span class="badge bg-warning-subtle text-dark">Kısmi Tahsil</span>
+                                    {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Tahsil Edilmedi</span>
+                                    {% endif %}
+                                </td>
                                 <td><small class="text-muted">{{ s.note or '-' }}</small></td>
                                 <td class="text-center">
+                                    <button type="button" class="btn btn-outline-primary btn-sm me-1"
+                                            data-bs-toggle="modal" data-bs-target="#collectModal{{ s.id }}" title="Tahsilat Güncelle">
+                                        <i class="bi bi-wallet2"></i>
+                                    </button>
                                     <form method="POST" action="{{ url_for('delete_sale', sid=s.id) }}"
-                                          onsubmit="return confirm('Bu kaydı silmek istediğinize emin misiniz?')">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                          class="d-inline" onsubmit="return confirm('Bu kaydı silmek istediğinize emin misiniz?')">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Sil">
                                             <i class="bi bi-trash3"></i>
                                         </button>
                                     </form>
                                 </td>
                             </tr>
+
+                            <!-- Tahsilat Güncelleme Modalı -->
+                            <div class="modal fade" id="collectModal{{ s.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <form method="POST" action="{{ url_for('update_sale_payment', sid=s.id) }}">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Tahsilat Tutarını Güncelle</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p class="mb-1"><strong>Alıcı:</strong> {{ s.buyer_name }}</p>
+                                                <p class="mb-1"><strong>Toplam Satış Tutarı:</strong> {{ "%.2f"|format(s.total_price) }} ₺</p>
+                                                <p class="mb-3 text-muted"><small>Tarih: {{ s.date }} | {{ s.quantity }} adet {{ s.egg_type_name }}</small></p>
+                                                <div class="mb-3">
+                                                    <label class="form-label fw-semibold">Bugüne Kadar Alınan Toplam Tahsilat (₺)</label>
+                                                    <input type="number" step="0.01" min="0" max="{{ s.total_price }}"
+                                                           class="form-control form-control-lg" name="paid_amount"
+                                                           value="{{ s.paid_amount }}" required>
+                                                    <div class="form-text">Müşteri tamamını ödediyse {{ "%.2f"|format(s.total_price) }} ₺ yazın.</div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                <button type="submit" class="btn btn-primary">Kaydet</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -169,12 +227,46 @@
     const qty = document.getElementById('s_qty');
     const price = document.getElementById('s_price');
     const total = document.getElementById('s_total');
+    const paid = document.getElementById('s_paid');
+    const recHint = document.getElementById('s_rec_hint');
+
+    let manualPaid = false;
+
     function calcTotal() {
         const q = parseFloat(qty.value) || 0;
         const p = parseFloat(price.value) || 0;
-        total.value = (q * p).toFixed(2) + ' ₺';
+        const tot = q * p;
+        total.value = tot.toFixed(2) + ' ₺';
+
+        if (!manualPaid) {
+            paid.value = tot > 0 ? tot.toFixed(2) : '';
+        }
+        updateRecHint();
     }
+
+    function updateRecHint() {
+        const q = parseFloat(qty.value) || 0;
+        const p = parseFloat(price.value) || 0;
+        const tot = q * p;
+        const pd = parseFloat(paid.value) || 0;
+        const diff = tot - pd;
+        if (diff > 0.001) {
+            recHint.innerText = 'Kalan alacak: ' + diff.toFixed(2) + ' ₺';
+            recHint.className = 'text-danger fw-semibold';
+        } else if (pd > tot && tot > 0) {
+            recHint.innerText = 'Fazla tahsilat: +' + (pd - tot).toFixed(2) + ' ₺';
+            recHint.className = 'text-warning';
+        } else {
+            recHint.innerText = 'Kalan alacak: 0.00 ₺ (Tam tahsil edildi)';
+            recHint.className = 'text-success';
+        }
+    }
+
     qty.addEventListener('input', calcTotal);
     price.addEventListener('input', calcTotal);
+    paid.addEventListener('input', function() {
+        manualPaid = true;
+        updateRecHint();
+    });
 </script>
 {% endblock %}

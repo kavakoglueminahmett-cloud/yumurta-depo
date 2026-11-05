@@ -120,6 +120,9 @@ def tedarik():
             supplier_id = int(request.form["supplier_id"])
             quantity = int(request.form["quantity"])
             unit_price = float(request.form["unit_price"])
+            total = quantity * unit_price
+            paid_str = request.form.get("paid_amount", "").strip()
+            paid_amount = float(paid_str) if paid_str else total
             purchase_date = request.form["date"]
             note = request.form.get("note", "").strip()
 
@@ -127,17 +130,19 @@ def tedarik():
                 flash("Miktar sıfırdan büyük olmalı.", "warning")
             elif unit_price < 0:
                 flash("Birim fiyat negatif olamaz.", "warning")
+            elif paid_amount < 0:
+                flash("Ödenen tutar negatif olamaz.", "warning")
             else:
                 db.add_purchase(
                     session["user_id"], egg_type_id, supplier_id,
-                    quantity, unit_price, purchase_date, note
+                    quantity, unit_price, paid_amount, purchase_date, note
                 )
-                # Firma adını bul
                 sup_name = next((s["name"] for s in suppliers if s["id"] == supplier_id), "?")
-                total = quantity * unit_price
+                debt = total - paid_amount
+                debt_info = f" (Kalan Borç: {debt:.2f} ₺)" if debt > 0 else " (Tamamı Ödendi)"
                 flash(
                     f"✅ Tedarik kaydedildi: {sup_name}'dan {quantity} adet × "
-                    f"{unit_price:.2f} ₺ = {total:.2f} ₺",
+                    f"{unit_price:.2f} ₺ = {total:.2f} ₺{debt_info}",
                     "success",
                 )
                 return redirect(url_for("tedarik"))
@@ -169,6 +174,9 @@ def satis():
             buyer_id = int(request.form["buyer_id"])
             quantity = int(request.form["quantity"])
             unit_price = float(request.form["unit_price"])
+            total = quantity * unit_price
+            paid_str = request.form.get("paid_amount", "").strip()
+            paid_amount = float(paid_str) if paid_str else total
             sale_date = request.form["date"]
             note = request.form.get("note", "").strip()
 
@@ -176,17 +184,20 @@ def satis():
                 flash("Miktar sıfırdan büyük olmalı.", "warning")
             elif unit_price < 0:
                 flash("Birim fiyat negatif olamaz.", "warning")
+            elif paid_amount < 0:
+                flash("Tahsil edilen tutar negatif olamaz.", "warning")
             else:
                 ok, msg = db.add_sale(
                     session["user_id"], egg_type_id, buyer_id,
-                    quantity, unit_price, sale_date, note
+                    quantity, unit_price, paid_amount, sale_date, note
                 )
                 if ok:
                     buyer_name = next((b["name"] for b in buyers if b["id"] == buyer_id), "?")
-                    total = quantity * unit_price
+                    receivable = total - paid_amount
+                    rec_info = f" (Kalan Alacak: {receivable:.2f} ₺)" if receivable > 0 else " (Tamamı Tahsil Edildi)"
                     flash(
                         f"✅ Satış kaydedildi: {buyer_name}'a {quantity} adet × "
-                        f"{unit_price:.2f} ₺ = {total:.2f} ₺",
+                        f"{unit_price:.2f} ₺ = {total:.2f} ₺{rec_info}",
                         "success",
                     )
                     return redirect(url_for("satis"))
@@ -218,9 +229,15 @@ def muhasebe():
     sales = db.get_user_sales(session["user_id"], start_date, end_date)
 
     total_purchase_amount = sum(p["total_price"] for p in purchases)
+    total_purchase_paid = sum(p["paid_amount"] for p in purchases)
+    total_purchase_debt = total_purchase_amount - total_purchase_paid
     total_purchase_qty = sum(p["quantity"] for p in purchases)
+
     total_sale_amount = sum(s["total_price"] for s in sales)
+    total_sale_collected = sum(s["paid_amount"] for s in sales)
+    total_sale_receivable = total_sale_amount - total_sale_collected
     total_sale_qty = sum(s["quantity"] for s in sales)
+
     profit = total_sale_amount - total_purchase_amount
 
     # Çeşit bazında özet
@@ -245,14 +262,81 @@ def muhasebe():
         start_date=start_date or "",
         end_date=end_date or "",
         total_purchase_amount=total_purchase_amount,
+        total_purchase_paid=total_purchase_paid,
+        total_purchase_debt=total_purchase_debt,
         total_purchase_qty=total_purchase_qty,
         total_sale_amount=total_sale_amount,
+        total_sale_collected=total_sale_collected,
+        total_sale_receivable=total_sale_receivable,
         total_sale_qty=total_sale_qty,
         profit=profit,
         type_summary=type_summary,
         today=date.today().isoformat(),
         report_generated=bool(start_date or end_date),
     )
+
+
+# ── Borç & Alacak (Cari Hesaplar) ──────────────────────────
+
+@app.route("/borc-alacak")
+@login_required
+def borc_alacak():
+    # Görünüm modu: 'all' (Tüm Depo) veya 'my' (Sadece Benim)
+    view_mode = request.args.get("view", "all")
+    uid = session["user_id"] if view_mode == "my" else None
+
+    supplier_debts = db.get_supplier_debts(uid)
+    buyer_receivables = db.get_buyer_receivables(uid)
+    pending_purchases = db.get_pending_purchases(uid)
+    pending_sales = db.get_pending_sales(uid)
+
+    total_debt = sum(s["remaining_debt"] for s in supplier_debts)
+    total_receivable = sum(b["remaining_receivable"] for b in buyer_receivables)
+    net_balance = total_receivable - total_debt  # Pozitifse alacaklıyız, negatifse borçluyuz
+
+    return render_template(
+        "borc_alacak.html",
+        supplier_debts=supplier_debts,
+        buyer_receivables=buyer_receivables,
+        pending_purchases=pending_purchases,
+        pending_sales=pending_sales,
+        total_debt=total_debt,
+        total_receivable=total_receivable,
+        net_balance=net_balance,
+        view_mode=view_mode,
+    )
+
+
+# ── Ödeme / Tahsilat Güncelle ─────────────────────────────
+
+@app.route("/odeme-guncelle/tedarik/<int:pid>", methods=["POST"])
+@login_required
+def update_purchase_payment(pid):
+    try:
+        new_paid = float(request.form.get("paid_amount", 0))
+        if new_paid < 0:
+            flash("Ödenen tutar negatif olamaz.", "warning")
+        else:
+            db.update_purchase_payment(pid, session["user_id"], new_paid)
+            flash("Tedarik ödeme tutarı güncellendi.", "success")
+    except ValueError:
+        flash("Geçersiz ödeme tutarı.", "danger")
+    return redirect(request.referrer or url_for("borc_alacak"))
+
+
+@app.route("/tahsilat-guncelle/satis/<int:sid>", methods=["POST"])
+@login_required
+def update_sale_payment(sid):
+    try:
+        new_paid = float(request.form.get("paid_amount", 0))
+        if new_paid < 0:
+            flash("Tahsil edilen tutar negatif olamaz.", "warning")
+        else:
+            db.update_sale_payment(sid, session["user_id"], new_paid)
+            flash("Satış tahsilat tutarı güncellendi.", "success")
+    except ValueError:
+        flash("Geçersiz tahsilat tutarı.", "danger")
+    return redirect(request.referrer or url_for("borc_alacak"))
 
 
 # ── Kayıt Silme ──────────────────────────────────────────

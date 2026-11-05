@@ -50,7 +50,13 @@
                         </div>
                         <h6 class="text-muted">Toplam Alış</h6>
                         <div class="fs-3 fw-bold text-success">{{ "%.2f"|format(total_purchase_amount) }} ₺</div>
-                        <small class="text-muted">{{ total_purchase_qty }} adet</small>
+                        <small class="text-muted d-block mb-1">{{ total_purchase_qty }} adet</small>
+                        <div class="small mt-2 pt-2 border-top">
+                            <span class="text-success me-2">Ödenen: {{ "%.2f"|format(total_purchase_paid) }} ₺</span>
+                            {% if total_purchase_debt > 0.01 %}
+                            <span class="text-danger fw-semibold">Borç: {{ "%.2f"|format(total_purchase_debt) }} ₺</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -62,7 +68,13 @@
                         </div>
                         <h6 class="text-muted">Toplam Satış</h6>
                         <div class="fs-3 fw-bold text-primary">{{ "%.2f"|format(total_sale_amount) }} ₺</div>
-                        <small class="text-muted">{{ total_sale_qty }} adet</small>
+                        <small class="text-muted d-block mb-1">{{ total_sale_qty }} adet</small>
+                        <div class="small mt-2 pt-2 border-top">
+                            <span class="text-success me-2">Tahsil: {{ "%.2f"|format(total_sale_collected) }} ₺</span>
+                            {% if total_sale_receivable > 0.01 %}
+                            <span class="text-danger fw-semibold">Alacak: {{ "%.2f"|format(total_sale_receivable) }} ₺</span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -150,18 +162,25 @@
                                 <th class="text-end">Adet</th>
                                 <th class="text-end">Birim ₺</th>
                                 <th class="text-end">Toplam ₺</th>
+                                <th class="text-end">Ödenen ₺</th>
+                                <th class="text-end">Kalan Borç ₺</th>
                                 <th>Not</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for p in purchases %}
+                            {% set debt = p.total_price - p.paid_amount %}
                             <tr>
                                 <td>{{ p.date }}</td>
                                 <td class="fw-semibold">{{ p.supplier_name }}</td>
                                 <td><span class="badge bg-light text-dark">{{ p.egg_type_name }}</span></td>
                                 <td class="text-end">{{ p.quantity }}</td>
                                 <td class="text-end">{{ "%.2f"|format(p.unit_price) }}</td>
-                                <td class="text-end fw-bold text-success">{{ "%.2f"|format(p.total_price) }}</td>
+                                <td class="text-end fw-bold">{{ "%.2f"|format(p.total_price) }}</td>
+                                <td class="text-end text-success">{{ "%.2f"|format(p.paid_amount) }}</td>
+                                <td class="text-end fw-bold {% if debt > 0.01 %}text-danger{% else %}text-muted{% endif %}">
+                                    {{ "%.2f"|format(debt) }}
+                                </td>
                                 <td><small class="text-muted">{{ p.note or '-' }}</small></td>
                             </tr>
                             {% endfor %}
@@ -171,7 +190,9 @@
                                 <td colspan="3">TOPLAM</td>
                                 <td class="text-end">{{ total_purchase_qty }}</td>
                                 <td></td>
-                                <td class="text-end text-success">{{ "%.2f"|format(total_purchase_amount) }} ₺</td>
+                                <td class="text-end">{{ "%.2f"|format(total_purchase_amount) }} ₺</td>
+                                <td class="text-end text-success">{{ "%.2f"|format(total_purchase_paid) }} ₺</td>
+                                <td class="text-end text-danger">{{ "%.2f"|format(total_purchase_debt) }} ₺</td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -203,18 +224,25 @@
                                 <th class="text-end">Adet</th>
                                 <th class="text-end">Birim ₺</th>
                                 <th class="text-end">Toplam ₺</th>
+                                <th class="text-end">Tahsil ₺</th>
+                                <th class="text-end">Kalan Alacak ₺</th>
                                 <th>Not</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for s in sales %}
+                            {% set rec = s.total_price - s.paid_amount %}
                             <tr>
                                 <td>{{ s.date }}</td>
                                 <td class="fw-semibold">{{ s.buyer_name }}</td>
                                 <td><span class="badge bg-light text-dark">{{ s.egg_type_name }}</span></td>
                                 <td class="text-end">{{ s.quantity }}</td>
                                 <td class="text-end">{{ "%.2f"|format(s.unit_price) }}</td>
-                                <td class="text-end fw-bold text-primary">{{ "%.2f"|format(s.total_price) }}</td>
+                                <td class="text-end fw-bold">{{ "%.2f"|format(s.total_price) }}</td>
+                                <td class="text-end text-success">{{ "%.2f"|format(s.paid_amount) }}</td>
+                                <td class="text-end fw-bold {% if rec > 0.01 %}text-danger{% else %}text-muted{% endif %}">
+                                    {{ "%.2f"|format(rec) }}
+                                </td>
                                 <td><small class="text-muted">{{ s.note or '-' }}</small></td>
                             </tr>
                             {% endfor %}
@@ -224,7 +252,9 @@
                                 <td colspan="3">TOPLAM</td>
                                 <td class="text-end">{{ total_sale_qty }}</td>
                                 <td></td>
-                                <td class="text-end text-primary">{{ "%.2f"|format(total_sale_amount) }} ₺</td>
+                                <td class="text-end">{{ "%.2f"|format(total_sale_amount) }} ₺</td>
+                                <td class="text-end text-success">{{ "%.2f"|format(total_sale_collected) }} ₺</td>
+                                <td class="text-end text-danger">{{ "%.2f"|format(total_sale_receivable) }} ₺</td>
                                 <td></td>
                             </tr>
                         </tfoot>

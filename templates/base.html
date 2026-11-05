@@ -39,6 +39,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'borc_alacak' %}active{% endif %}"
+                           href="{{ url_for('borc_alacak') }}">
+                            <i class="bi bi-wallet2 me-1"></i> Borç & Alacak
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'muhasebe' %}active{% endif %}"
                            href="{{ url_for('muhasebe') }}">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Muhasebe

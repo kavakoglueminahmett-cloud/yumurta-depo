@@ -59,6 +59,7 @@ def init_db():
             quantity    INTEGER   NOT NULL,
             unit_price  REAL      NOT NULL,
             total_price REAL      NOT NULL,
+            paid_amount REAL      NOT NULL DEFAULT 0,
             date        TEXT      NOT NULL,
             note        TEXT      DEFAULT '',
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -75,6 +76,7 @@ def init_db():
             quantity    INTEGER   NOT NULL,
             unit_price  REAL      NOT NULL,
             total_price REAL      NOT NULL,
+            paid_amount REAL      NOT NULL DEFAULT 0,
             date        TEXT      NOT NULL,
             note        TEXT      DEFAULT '',
             created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,6 +85,17 @@ def init_db():
             FOREIGN KEY (buyer_id)    REFERENCES buyers(id)
         );
     """)
+
+    # -- Migration: paid_amount sütunu yoksa ekle ve eski kayıtları güncelle --
+    purchases_cols = [c[1] for c in cursor.execute("PRAGMA table_info(purchases)").fetchall()]
+    if "paid_amount" not in purchases_cols:
+        cursor.execute("ALTER TABLE purchases ADD COLUMN paid_amount REAL NOT NULL DEFAULT 0")
+        cursor.execute("UPDATE purchases SET paid_amount = total_price")
+
+    sales_cols = [c[1] for c in cursor.execute("PRAGMA table_info(sales)").fetchall()]
+    if "paid_amount" not in sales_cols:
+        cursor.execute("ALTER TABLE sales ADD COLUMN paid_amount REAL NOT NULL DEFAULT 0")
+        cursor.execute("UPDATE sales SET paid_amount = total_price")
 
     # -- Varsayılan kullanıcılar --
     if cursor.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
@@ -183,14 +196,26 @@ def get_stock_for_type(egg_type_id):
 #  TEDARİK (ALIŞ)
 # ═══════════════════════════════════════════════════════════
 
-def add_purchase(user_id, egg_type_id, supplier_id, quantity, unit_price, date, note=""):
+def add_purchase(user_id, egg_type_id, supplier_id, quantity, unit_price, paid_amount, date, note=""):
     total_price = quantity * unit_price
+    if paid_amount is None or paid_amount < 0:
+        paid_amount = total_price
     conn = get_db()
     conn.execute(
         """INSERT INTO purchases
-           (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, date, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, date, note),
+           (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, paid_amount, date, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, egg_type_id, supplier_id, quantity, unit_price, total_price, paid_amount, date, note),
+    )
+    conn.commit()
+    conn.close()
+
+
+def update_purchase_payment(purchase_id, user_id, new_paid_amount):
+    conn = get_db()
+    conn.execute(
+        "UPDATE purchases SET paid_amount = ? WHERE id = ? AND user_id = ?",
+        (new_paid_amount, purchase_id, user_id)
     )
     conn.commit()
     conn.close()
@@ -199,7 +224,8 @@ def add_purchase(user_id, egg_type_id, supplier_id, quantity, unit_price, date, 
 def get_user_purchases(user_id, start_date=None, end_date=None):
     conn = get_db()
     query = """
-        SELECT p.*, et.name AS egg_type_name, sup.name AS supplier_name
+        SELECT p.*, et.name AS egg_type_name, sup.name AS supplier_name,
+               (p.total_price - p.paid_amount) AS remaining_debt
         FROM purchases p
         JOIN egg_types  et  ON et.id  = p.egg_type_id
         JOIN suppliers  sup ON sup.id = p.supplier_id
@@ -229,28 +255,41 @@ def delete_purchase(purchase_id, user_id):
 #  SATIŞ
 # ═══════════════════════════════════════════════════════════
 
-def add_sale(user_id, egg_type_id, buyer_id, quantity, unit_price, date, note=""):
+def add_sale(user_id, egg_type_id, buyer_id, quantity, unit_price, paid_amount, date, note=""):
     current_stock = get_stock_for_type(egg_type_id)
     if quantity > current_stock:
         return False, f"Yetersiz stok! Mevcut: {current_stock} adet"
 
     total_price = quantity * unit_price
+    if paid_amount is None or paid_amount < 0:
+        paid_amount = total_price
     conn = get_db()
     conn.execute(
         """INSERT INTO sales
-           (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, date, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-        (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, date, note),
+           (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, paid_amount, date, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (user_id, egg_type_id, buyer_id, quantity, unit_price, total_price, paid_amount, date, note),
     )
     conn.commit()
     conn.close()
     return True, "Satış başarıyla kaydedildi."
 
 
+def update_sale_payment(sale_id, user_id, new_paid_amount):
+    conn = get_db()
+    conn.execute(
+        "UPDATE sales SET paid_amount = ? WHERE id = ? AND user_id = ?",
+        (new_paid_amount, sale_id, user_id)
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_user_sales(user_id, start_date=None, end_date=None):
     conn = get_db()
     query = """
-        SELECT s.*, et.name AS egg_type_name, b.name AS buyer_name
+        SELECT s.*, et.name AS egg_type_name, b.name AS buyer_name,
+               (s.total_price - s.paid_amount) AS remaining_receivable
         FROM sales s
         JOIN egg_types et ON et.id = s.egg_type_id
         JOIN buyers    b  ON b.id  = s.buyer_id
@@ -274,6 +313,118 @@ def delete_sale(sale_id, user_id):
     conn.execute("DELETE FROM sales WHERE id = ? AND user_id = ?", (sale_id, user_id))
     conn.commit()
     conn.close()
+
+
+# ═══════════════════════════════════════════════════════════
+#  CARİ HESAPLAR / BORÇ & ALACAK RAPORLARI
+# ═══════════════════════════════════════════════════════════
+
+def get_supplier_debts(user_id=None):
+    """
+    Hangi tedarikçiye ne kadar borç olduğunu firma bazında döndürür.
+    user_id verilirse o kullanıcının alımları, verilmezse tüm deponun borçları.
+    """
+    conn = get_db()
+    where = "WHERE p.user_id = ?" if user_id else ""
+    params = [user_id] if user_id else []
+
+    query = f"""
+        SELECT
+            sup.id,
+            sup.name,
+            COUNT(p.id) AS tx_count,
+            COALESCE(SUM(p.total_price), 0) AS total_amount,
+            COALESCE(SUM(p.paid_amount), 0) AS total_paid,
+            COALESCE(SUM(p.total_price), 0) - COALESCE(SUM(p.paid_amount), 0) AS remaining_debt,
+            MAX(p.date) AS last_date
+        FROM suppliers sup
+        JOIN purchases p ON p.supplier_id = sup.id
+        {where}
+        GROUP BY sup.id, sup.name
+        ORDER BY remaining_debt DESC, sup.name ASC
+    """
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return rows
+
+
+def get_buyer_receivables(user_id=None):
+    """
+    Hangi alıcı firmadan ne kadar alacak olduğunu firma bazında döndürür.
+    user_id verilirse o kullanıcının satışları, verilmezse tüm deponun alacakları.
+    """
+    conn = get_db()
+    where = "WHERE s.user_id = ?" if user_id else ""
+    params = [user_id] if user_id else []
+
+    query = f"""
+        SELECT
+            b.id,
+            b.name,
+            COUNT(s.id) AS tx_count,
+            COALESCE(SUM(s.total_price), 0) AS total_amount,
+            COALESCE(SUM(s.paid_amount), 0) AS total_paid,
+            COALESCE(SUM(s.total_price), 0) - COALESCE(SUM(s.paid_amount), 0) AS remaining_receivable,
+            MAX(s.date) AS last_date
+        FROM buyers b
+        JOIN sales s ON s.buyer_id = b.id
+        {where}
+        GROUP BY b.id, b.name
+        ORDER BY remaining_receivable DESC, b.name ASC
+    """
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return rows
+
+
+def get_pending_purchases(user_id=None):
+    """Ödemesi eksik kalan alışları detaylı listeler."""
+    conn = get_db()
+    where = "WHERE (p.total_price - p.paid_amount) > 0.01"
+    params = []
+    if user_id:
+        where += " AND p.user_id = ?"
+        params.append(user_id)
+
+    query = f"""
+        SELECT p.*, et.name AS egg_type_name, sup.name AS supplier_name,
+               (p.total_price - p.paid_amount) AS remaining_debt,
+               u.full_name AS user_name
+        FROM purchases p
+        JOIN egg_types et ON et.id = p.egg_type_id
+        JOIN suppliers sup ON sup.id = p.supplier_id
+        JOIN users u ON u.id = p.user_id
+        {where}
+        ORDER BY p.date DESC
+    """
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return rows
+
+
+def get_pending_sales(user_id=None):
+    """Tahsilatı eksik kalan satışları detaylı listeler."""
+    conn = get_db()
+    where = "WHERE (s.total_price - s.paid_amount) > 0.01"
+    params = []
+    if user_id:
+        where += " AND s.user_id = ?"
+        params.append(user_id)
+
+    query = f"""
+        SELECT s.*, et.name AS egg_type_name, b.name AS buyer_name,
+               (s.total_price - s.paid_amount) AS remaining_receivable,
+               u.full_name AS user_name
+        FROM sales s
+        JOIN egg_types et ON et.id = s.egg_type_id
+        JOIN buyers b ON b.id = s.buyer_id
+        JOIN users u ON u.id = s.user_id
+        {where}
+        ORDER BY s.date DESC
+    """
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return rows
 
 
 # ═══════════════════════════════════════════════════════════
