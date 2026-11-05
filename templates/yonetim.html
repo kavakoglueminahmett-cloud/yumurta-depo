@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+{% block title %}Yönetim Paneli - Yumurta Depo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-11 col-xl-10">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0">
+                <i class="bi bi-gear text-primary me-2"></i> Yönetim Paneli
+            </h2>
+            <span class="text-muted small">Firmalar, Çeşitler, Başlangıç Stokları ve Kullanıcı Yönetimi</span>
+        </div>
+
+        <!-- Sekmeler / Nav Tabs -->
+        <ul class="nav nav-pills nav-fill mb-4 bg-white p-2 rounded shadow-sm" id="yonetimTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-semibold" id="cesitler-tab" data-bs-toggle="tab" data-bs-target="#cesitler" type="button" role="tab">
+                    <i class="bi bi-egg me-1"></i> Yumurta Çeşitleri & Başlangıç Stoğu
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="tedarikciler-tab" data-bs-toggle="tab" data-bs-target="#tedarikciler" type="button" role="tab">
+                    <i class="bi bi-truck me-1"></i> Tedarikçi Firmalar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="alicilar-tab" data-bs-toggle="tab" data-bs-target="#alicilar" type="button" role="tab">
+                    <i class="bi bi-shop me-1"></i> Alıcı / Müşteri Firmalar
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold" id="kullanicilar-tab" data-bs-toggle="tab" data-bs-target="#kullanicilar" type="button" role="tab">
+                    <i class="bi bi-people me-1"></i> Kullanıcı Yönetimi
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="yonetimTabContent">
+
+            <!-- 1. YUMURTA ÇEŞİTLERİ VE BAŞLANGIÇ STOĞU -->
+            <div class="tab-pane fade show active" id="cesitler" role="tabpanel">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Yeni Yumurta Çeşidi & Başlangıç Stoğu Ekle
+                        </h5>
+                    </div>
+                    <div class="card-body pt-0">
+                        <form method="POST" action="{{ url_for('add_egg_type') }}" class="row g-3 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Yumurta Çeşidi Adı</label>
+                                <input type="text" class="form-control" name="name" placeholder="Örn: Gezen Tavuk L Boy" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Başlangıç Stoğu (Adet)</label>
+                                <input type="number" class="form-control" name="initial_stock" min="0" value="0" placeholder="0">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-lg me-1"></i> Ekle
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Mevcut Yumurta Çeşitleri</h5>
+                        <span class="badge bg-primary-subtle text-primary">{{ egg_types|length }} Çeşit</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 35%;">Çeşit Adı</th>
+                                        <th class="text-center" style="width: 25%;">Başlangıç Stoğu (Adet)</th>
+                                        <th class="text-center" style="width: 20%;">Güncel Stok (Adet)</th>
+                                        <th class="text-end" style="width: 20%;">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for et in egg_types %}
+                                    {% set curr_stock = (stock | selectattr('id', 'equalto', et.id) | first) %}
+                                    <tr>
+                                        <td>
+                                            <span class="fw-semibold">{{ et.name }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary-subtle text-secondary px-3 py-2 fs-6">
+                                                {{ et.initial_stock }} adet
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info-subtle text-dark px-3 py-2 fs-6">
+                                                {{ curr_stock.stock if curr_stock else et.initial_stock }} adet
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-outline-primary btn-sm me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#editTypeModal{{ et.id }}">
+                                                <i class="bi bi-pencil"></i> Düzenle
+                                            </button>
+                                            <form method="POST" action="{{ url_for('delete_egg_type', eid=et.id) }}"
+                                                  class="d-inline" onsubmit="return confirm('Bu çeşidi silmek istediğinize emin misiniz?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Düzenleme Modalı -->
+                                    <div class="modal fade" id="editTypeModal{{ et.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="POST" action="{{ url_for('update_egg_type', eid=et.id) }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Yumurta Çeşidini Düzenle</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Çeşit Adı</label>
+                                                            <input type="text" class="form-control" name="name" value="{{ et.name }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Başlangıç Stoğu (Adet)</label>
+                                                            <input type="number" class="form-control" name="initial_stock" min="0" value="{{ et.initial_stock }}" required>
+                                                            <div class="form-text text-muted">Depoya başlangıçta eklenen miktar (alım yapılmadan önceki hazır stok).</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">
+                                            Henüz yumurta çeşidi bulunmuyor.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. TEDARİKÇİ FİRMALAR -->
+            <div class="tab-pane fade" id="tedarikciler" role="tabpanel">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="fw-bold mb-0 text-success">
+                            <i class="bi bi-truck me-1"></i> Yeni Tedarikçi Firma Ekle
+                        </h5>
+                    </div>
+                    <div class="card-body pt-0">
+                        <form method="POST" action="{{ url_for('add_supplier') }}" class="row g-3 align-items-end">
+                            <div class="col-md-9">
+                                <label class="form-label fw-semibold">Tedarikçi Firma / Çiftlik Adı</label>
+                                <input type="text" class="form-control" name="name" placeholder="Örn: Anadolu Yumurta Çiftliği A.Ş." required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-plus-lg me-1"></i> Tedarikçi Ekle
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Kayıtlı Tedarikçiler</h5>
+                        <span class="badge bg-success-subtle text-success">{{ suppliers|length }} Tedarikçi</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 10%;">#</th>
+                                        <th style="width: 65%;">Firma / Tedarikçi Adı</th>
+                                        <th class="text-end" style="width: 25%;">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in suppliers %}
+                                    <tr>
+                                        <td>{{ s.id }}</td>
+                                        <td class="fw-semibold">{{ s.name }}</td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-outline-success btn-sm me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#editSupModal{{ s.id }}">
+                                                <i class="bi bi-pencil"></i> Düzenle
+                                            </button>
+                                            <form method="POST" action="{{ url_for('delete_supplier', sid=s.id) }}"
+                                                  class="d-inline" onsubmit="return confirm('Bu tedarikçiyi silmek istediğinize emin misiniz?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Düzenleme Modalı -->
+                                    <div class="modal fade" id="editSupModal{{ s.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="POST" action="{{ url_for('update_supplier', sid=s.id) }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Tedarikçi Düzenle</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Firma Adı</label>
+                                                            <input type="text" class="form-control" name="name" value="{{ s.name }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                        <button type="submit" class="btn btn-success">Kaydet</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-center py-4 text-muted">
+                                            Henüz kayıtlı tedarikçi yok.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. ALICI / MÜŞTERİ FİRMALAR -->
+            <div class="tab-pane fade" id="alicilar" role="tabpanel">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="fw-bold mb-0 text-primary">
+                            <i class="bi bi-shop me-1"></i> Yeni Alıcı / Müşteri Firma Ekle
+                        </h5>
+                    </div>
+                    <div class="card-body pt-0">
+                        <form method="POST" action="{{ url_for('add_buyer') }}" class="row g-3 align-items-end">
+                            <div class="col-md-9">
+                                <label class="form-label fw-semibold">Alıcı Firma / Market / Toptancı Adı</label>
+                                <input type="text" class="form-control" name="name" placeholder="Örn: Güneş Marketler Zinciri" required>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-plus-lg me-1"></i> Alıcı Firma Ekle
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Kayıtlı Alıcı Firmalar</h5>
+                        <span class="badge bg-primary-subtle text-primary">{{ buyers|length }} Alıcı Firma</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 10%;">#</th>
+                                        <th style="width: 65%;">Firma / Alıcı Adı</th>
+                                        <th class="text-end" style="width: 25%;">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for b in buyers %}
+                                    <tr>
+                                        <td>{{ b.id }}</td>
+                                        <td class="fw-semibold">{{ b.name }}</td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-outline-primary btn-sm me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#editBuyerModal{{ b.id }}">
+                                                <i class="bi bi-pencil"></i> Düzenle
+                                            </button>
+                                            <form method="POST" action="{{ url_for('delete_buyer', bid=b.id) }}"
+                                                  class="d-inline" onsubmit="return confirm('Bu alıcıyı silmek istediğinize emin misiniz?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Düzenleme Modalı -->
+                                    <div class="modal fade" id="editBuyerModal{{ b.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="POST" action="{{ url_for('update_buyer', bid=b.id) }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Alıcı Firmayı Düzenle</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Firma Adı</label>
+                                                            <input type="text" class="form-control" name="name" value="{{ b.name }}" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-center py-4 text-muted">
+                                            Henüz kayıtlı alıcı firma yok.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. KULLANICI YÖNETİMİ -->
+            <div class="tab-pane fade" id="kullanicilar" role="tabpanel">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-0">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="bi bi-person-plus me-1"></i> Yeni Çalışan / Kullanıcı Ekle
+                        </h5>
+                    </div>
+                    <div class="card-body pt-0">
+                        <form method="POST" action="{{ url_for('add_user') }}" class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Adı Soyadı</label>
+                                <input type="text" class="form-control" name="full_name" placeholder="Örn: Hasan Yılmaz" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Kullanıcı Adı</label>
+                                <input type="text" class="form-control" name="username" placeholder="Örn: hasan" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Şifre</label>
+                                <input type="password" class="form-control" name="password" placeholder="Şifre belirleyin" required>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="submit" class="btn btn-dark w-100">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0">Yetkili Kullanıcılar (3 Kişi)</h5>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ users|length }} Kullanıcı</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 10%;">#</th>
+                                        <th style="width: 40%;">Ad Soyad</th>
+                                        <th style="width: 30%;">Kullanıcı Adı</th>
+                                        <th class="text-end" style="width: 20%;">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in users %}
+                                    <tr>
+                                        <td>{{ u.id }}</td>
+                                        <td class="fw-semibold">
+                                            <i class="bi bi-person-circle me-1 text-primary"></i>
+                                            {{ u.full_name }}
+                                            {% if u.id == session.get('user_id') %}
+                                            <span class="badge bg-success-subtle text-success ms-1">Siz</span>
+                                            {% endif %}
+                                        </td>
+                                        <td><code>{{ u.username }}</code></td>
+                                        <td class="text-end">
+                                            <button type="button" class="btn btn-outline-dark btn-sm me-1"
+                                                    data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.id }}">
+                                                <i class="bi bi-key"></i> Düzenle
+                                            </button>
+                                            {% if u.id != session.get('user_id') %}
+                                            <form method="POST" action="{{ url_for('delete_user', uid=u.id) }}"
+                                                  class="d-inline" onsubmit="return confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    <i class="bi bi-trash3"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+
+                                    <!-- Kullanıcı Düzenleme Modalı -->
+                                    <div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="POST" action="{{ url_for('update_user', uid=u.id) }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Kullanıcı Bilgilerini / Şifresini Düzenle</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Adı Soyadı</label>
+                                                            <input type="text" class="form-control" name="full_name" value="{{ u.full_name }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Kullanıcı Adı</label>
+                                                            <input type="text" class="form-control" name="username" value="{{ u.username }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold">Yeni Şifre</label>
+                                                            <input type="password" class="form-control" name="password" placeholder="Değiştirmek istemiyorsanız boş bırakın">
+                                                            <small class="text-muted">Boş bırakırsanız mevcut şifre korunur.</small>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // URL hash'ine göre sekmeyi otomatik aç (#tedarikciler, #alicilar, #cesitler, #kullanicilar)
+    document.addEventListener("DOMContentLoaded", function() {
+        let hash = window.location.hash;
+        if (hash) {
+            let targetTab = document.querySelector(`button[data-bs-target="${hash}"]`);
+            if (targetTab) {
+                let tab = new bootstrap.Tab(targetTab);
+                tab.show();
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}Satış - Yumurta Depo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <h2 class="fw-bold mb-4">
+            <i class="bi bi-cash-coin text-primary me-2"></i> Satış Girişi
+        </h2>
+
+        {% if not buyers %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Henüz alıcı firma eklenmemiş.
+            <a href="{{ url_for('yonetim') }}#alicilar" class="alert-link">Yönetim panelinden</a> ekleyin.
+        </div>
+        {% endif %}
+
+        <!-- Güncel Stok Bilgisi -->
+        <div class="alert alert-info border-0 shadow-sm d-flex flex-wrap gap-3 align-items-center">
+            <strong><i class="bi bi-info-circle me-1"></i> Güncel Stok:</strong>
+            {% for item in stock %}
+            <span class="badge
+                {% if item.stock > 500 %}bg-success
+                {% elif item.stock > 100 %}bg-warning text-dark
+                {% elif item.stock > 0 %}bg-danger
+                {% else %}bg-secondary
+                {% endif %} fs-6">
+                {{ item.name }}: {{ item.stock }} adet
+            </span>
+            {% endfor %}
+        </div>
+
+        <!-- Form -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('satis') }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-shop me-1"></i> Alıcı Firma
+                            </label>
+                            <select class="form-select" name="buyer_id" required>
+                                <option value="" disabled selected>Firma seçiniz...</option>
+                                {% for b in buyers %}
+                                <option value="{{ b.id }}">{{ b.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-egg me-1"></i> Yumurta Çeşidi
+                            </label>
+                            <select class="form-select" name="egg_type_id" required>
+                                <option value="" disabled selected>Çeşit seçiniz...</option>
+                                {% for et in egg_types %}
+                                <option value="{{ et.id }}">{{ et.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-123 me-1"></i> Miktar (Adet)
+                            </label>
+                            <input type="number" class="form-control" name="quantity"
+                                   min="1" placeholder="0" required id="s_qty">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-currency-lira me-1"></i> Birim Fiyat (₺)
+                            </label>
+                            <input type="number" class="form-control" name="unit_price"
+                                   min="0" step="0.01" placeholder="0.00" required id="s_price">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calculator me-1"></i> Toplam Tutar
+                            </label>
+                            <input type="text" class="form-control bg-light" id="s_total"
+                                   readonly placeholder="0.00 ₺">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar me-1"></i> Tarih
+                            </label>
+                            <input type="date" class="form-control" name="date"
+                                   value="{{ today }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-chat-text me-1"></i> Not (Opsiyonel)
+                            </label>
+                            <input type="text" class="form-control" name="note"
+                                   placeholder="Açıklama ekleyin...">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary btn-lg" {% if not buyers %}disabled{% endif %}>
+                                <i class="bi bi-check-circle me-1"></i> Satış Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Satış Geçmişi -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary bg-opacity-10 border-0">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="bi bi-clock-history me-1"></i> Satış Geçmişim
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Alıcı</th>
+                                <th>Çeşit</th>
+                                <th class="text-end">Adet</th>
+                                <th class="text-end">Birim ₺</th>
+                                <th class="text-end">Toplam ₺</th>
+                                <th>Not</th>
+                                <th class="text-center">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in sales %}
+                            <tr>
+                                <td>{{ s.date }}</td>
+                                <td class="fw-semibold">{{ s.buyer_name }}</td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ s.egg_type_name }}</span>
+                                </td>
+                                <td class="text-end">{{ s.quantity }}</td>
+                                <td class="text-end">{{ "%.2f"|format(s.unit_price) }}</td>
+                                <td class="text-end fw-bold text-primary">{{ "%.2f"|format(s.total_price) }}</td>
+                                <td><small class="text-muted">{{ s.note or '-' }}</small></td>
+                                <td class="text-center">
+                                    <form method="POST" action="{{ url_for('delete_sale', sid=s.id) }}"
+                                          onsubmit="return confirm('Bu kaydı silmek istediğinize emin misiniz?')">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">
+                    <i class="bi bi-inbox me-1"></i> Henüz satış kaydı bulunmuyor.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const qty = document.getElementById('s_qty');
+    const price = document.getElementById('s_price');
+    const total = document.getElementById('s_total');
+    function calcTotal() {
+        const q = parseFloat(qty.value) || 0;
+        const p = parseFloat(price.value) || 0;
+        total.value = (q * p).toFixed(2) + ' ₺';
+    }
+    qty.addEventListener('input', calcTotal);
+    price.addEventListener('input', calcTotal);
+</script>
+{% endblock %}

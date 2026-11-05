@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Giriş - Yumurta Depo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="col-sm-8 col-md-5 col-lg-4 col-xl-3">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="display-1 text-primary mb-2">
+                        <i class="bi bi-egg-fill"></i>
+                    </div>
+                    <h3 class="fw-bold text-primary">Yumurta Depo</h3>
+                    <p class="text-muted">Yönetim Sistemi</p>
+                </div>
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold">
+                            <i class="bi bi-person me-1"></i> Kullanıcı Adı
+                        </label>
+                        <input type="text" class="form-control form-control-lg" id="username"
+                               name="username" placeholder="Kullanıcı adınız" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-semibold">
+                            <i class="bi bi-lock me-1"></i> Şifre
+                        </label>
+                        <input type="password" class="form-control form-control-lg" id="password"
+                               name="password" placeholder="Şifreniz" required>
+                    </div>
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember" value="1" checked>
+                        <label class="form-check-label user-select-none text-secondary" for="remember">
+                            <i class="bi bi-shield-check me-1 text-primary"></i> Oturumu açık tut (Beni hatırla)
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Giriş Yap
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

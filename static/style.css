@@ -1,0 +1,128 @@
+/* ── Yumurta Depo Yönetim Sistemi - Özel Stiller ── */
+
+body {
+    background-color: #f5f7fa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Navbar */
+.navbar {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+}
+
+.navbar-brand {
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+/* Login Sayfası */
+.card.shadow-lg {
+    border-radius: 16px;
+}
+
+/* Stok Kartları */
+.stock-card {
+    border-radius: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stock-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Hızlı İşlem Kartları */
+.quick-action-card {
+    border-radius: 12px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Card'lar */
+.card {
+    border-radius: 12px;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+/* Tablolar */
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #6b7280;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* Badge'ler */
+.badge {
+    font-weight: 500;
+    padding: 0.4em 0.8em;
+}
+
+/* Alert */
+.alert {
+    border-radius: 10px;
+}
+
+/* Butonlar */
+.btn-lg {
+    border-radius: 10px;
+    padding: 0.6rem 1.5rem;
+}
+
+/* Form */
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    border-color: #2563eb;
+}
+
+/* Yazdırma */
+@media print {
+    .navbar, footer, form, .btn, .alert {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+    }
+
+    body {
+        background: white;
+    }
+
+    .shadow-sm {
+        box-shadow: none !important;
+    }
+
+    @page {
+        margin: 1cm;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .display-6 {
+        font-size: 1.5rem;
+    }
+
+    .table {
+        font-size: 0.85rem;
+    }
+}

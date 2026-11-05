@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Muhasebe - Yumurta Depo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <h2 class="fw-bold mb-4">
+            <i class="bi bi-file-earmark-spreadsheet text-warning me-2"></i> Muhasebe Raporu
+        </h2>
+
+        <!-- Tarih Filtresi -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('muhasebe') }}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-event me-1"></i> Başlangıç Tarihi
+                            </label>
+                            <input type="date" class="form-control" name="start_date"
+                                   value="{{ start_date }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar-event me-1"></i> Bitiş Tarihi
+                            </label>
+                            <input type="date" class="form-control" name="end_date"
+                                   value="{{ end_date or today }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-warning btn-lg w-100">
+                                <i class="bi bi-search me-1"></i> Rapor Oluştur
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if report_generated %}
+
+        <!-- Özet Kartlar -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="bi bi-arrow-down-circle fs-2 text-success"></i>
+                        </div>
+                        <h6 class="text-muted">Toplam Alış</h6>
+                        <div class="fs-3 fw-bold text-success">{{ "%.2f"|format(total_purchase_amount) }} ₺</div>
+                        <small class="text-muted">{{ total_purchase_qty }} adet</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3">
+                            <i class="bi bi-arrow-up-circle fs-2 text-primary"></i>
+                        </div>
+                        <h6 class="text-muted">Toplam Satış</h6>
+                        <div class="fs-3 fw-bold text-primary">{{ "%.2f"|format(total_sale_amount) }} ₺</div>
+                        <small class="text-muted">{{ total_sale_qty }} adet</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="rounded-circle d-inline-flex p-3 mb-3
+                            {% if profit >= 0 %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}">
+                            <i class="bi bi-graph-up-arrow fs-2
+                                {% if profit >= 0 %}text-success{% else %}text-danger{% endif %}"></i>
+                        </div>
+                        <h6 class="text-muted">Kâr / Zarar</h6>
+                        <div class="fs-3 fw-bold
+                            {% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {% if profit >= 0 %}+{% endif %}{{ "%.2f"|format(profit) }} ₺
+                        </div>
+                        <small class="text-muted">
+                            {{ start_date }} — {{ end_date }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Çeşit Bazında Özet -->
+        {% if type_summary %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-warning bg-opacity-10 border-0">
+                <h5 class="mb-0 fw-bold text-warning">
+                    <i class="bi bi-pie-chart me-1"></i> Çeşit Bazında Özet
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Yumurta Çeşidi</th>
+                                <th class="text-end">Alınan (Adet)</th>
+                                <th class="text-end">Alış Tutarı (₺)</th>
+                                <th class="text-end">Satılan (Adet)</th>
+                                <th class="text-end">Satış Tutarı (₺)</th>
+                                <th class="text-end">Fark (₺)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for name, data in type_summary.items() %}
+                            {% set diff = data.sold_amount - data.bought_amount %}
+                            <tr>
+                                <td class="fw-semibold">{{ name }}</td>
+                                <td class="text-end">{{ data.bought_qty }}</td>
+                                <td class="text-end text-success">{{ "%.2f"|format(data.bought_amount) }}</td>
+                                <td class="text-end">{{ data.sold_qty }}</td>
+                                <td class="text-end text-primary">{{ "%.2f"|format(data.sold_amount) }}</td>
+                                <td class="text-end fw-bold
+                                    {% if diff >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    {% if diff >= 0 %}+{% endif %}{{ "%.2f"|format(diff) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Detaylı Alışlar -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-success bg-opacity-10 border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-success">
+                    <i class="bi bi-cart-plus me-1"></i> Alış Detayları
+                </h5>
+                <span class="badge bg-success">{{ purchases|length }} kayıt</span>
+            </div>
+            <div class="card-body p-0">
+                {% if purchases %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Tedarikçi</th>
+                                <th>Çeşit</th>
+                                <th class="text-end">Adet</th>
+                                <th class="text-end">Birim ₺</th>
+                                <th class="text-end">Toplam ₺</th>
+                                <th>Not</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in purchases %}
+                            <tr>
+                                <td>{{ p.date }}</td>
+                                <td class="fw-semibold">{{ p.supplier_name }}</td>
+                                <td><span class="badge bg-light text-dark">{{ p.egg_type_name }}</span></td>
+                                <td class="text-end">{{ p.quantity }}</td>
+                                <td class="text-end">{{ "%.2f"|format(p.unit_price) }}</td>
+                                <td class="text-end fw-bold text-success">{{ "%.2f"|format(p.total_price) }}</td>
+                                <td><small class="text-muted">{{ p.note or '-' }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr class="fw-bold">
+                                <td colspan="3">TOPLAM</td>
+                                <td class="text-end">{{ total_purchase_qty }}</td>
+                                <td></td>
+                                <td class="text-end text-success">{{ "%.2f"|format(total_purchase_amount) }} ₺</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">Bu tarih aralığında alış kaydı yok.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Detaylı Satışlar -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-primary bg-opacity-10 border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold text-primary">
+                    <i class="bi bi-cash-coin me-1"></i> Satış Detayları
+                </h5>
+                <span class="badge bg-primary">{{ sales|length }} kayıt</span>
+            </div>
+            <div class="card-body p-0">
+                {% if sales %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Alıcı</th>
+                                <th>Çeşit</th>
+                                <th class="text-end">Adet</th>
+                                <th class="text-end">Birim ₺</th>
+                                <th class="text-end">Toplam ₺</th>
+                                <th>Not</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in sales %}
+                            <tr>
+                                <td>{{ s.date }}</td>
+                                <td class="fw-semibold">{{ s.buyer_name }}</td>
+                                <td><span class="badge bg-light text-dark">{{ s.egg_type_name }}</span></td>
+                                <td class="text-end">{{ s.quantity }}</td>
+                                <td class="text-end">{{ "%.2f"|format(s.unit_price) }}</td>
+                                <td class="text-end fw-bold text-primary">{{ "%.2f"|format(s.total_price) }}</td>
+                                <td><small class="text-muted">{{ s.note or '-' }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr class="fw-bold">
+                                <td colspan="3">TOPLAM</td>
+                                <td class="text-end">{{ total_sale_qty }}</td>
+                                <td></td>
+                                <td class="text-end text-primary">{{ "%.2f"|format(total_sale_amount) }} ₺</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3 mb-0">Bu tarih aralığında satış kaydı yok.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Yazdırma -->
+        <div class="text-center mb-4">
+            <button onclick="window.print()" class="btn btn-outline-dark btn-lg">
+                <i class="bi bi-printer me-1"></i> Raporu Yazdır / PDF Kaydet
+            </button>
+        </div>
+
+        {% else %}
+
+        <div class="text-center py-5">
+            <div class="display-1 text-muted mb-3">
+                <i class="bi bi-file-earmark-bar-graph"></i>
+            </div>
+            <h4 class="text-muted">Tarih aralığı seçerek raporunuzu oluşturun</h4>
+            <p class="text-muted">Başlangıç ve bitiş tarihlerini belirleyin, ardından "Rapor Oluştur" butonuna tıklayın.</p>
+        </div>
+
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

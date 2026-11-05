@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Tedarik - Yumurta Depo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <h2 class="fw-bold mb-4">
+            <i class="bi bi-cart-plus text-success me-2"></i> Tedarik Girişi
+        </h2>
+
+        {% if not suppliers %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Henüz tedarikçi firma eklenmemiş.
+            <a href="{{ url_for('yonetim') }}#tedarikciler" class="alert-link">Yönetim panelinden</a> ekleyin.
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('tedarik') }}">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-building me-1"></i> Tedarikçi Firma
+                            </label>
+                            <select class="form-select" name="supplier_id" required>
+                                <option value="" disabled selected>Firma seçiniz...</option>
+                                {% for s in suppliers %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-egg me-1"></i> Yumurta Çeşidi
+                            </label>
+                            <select class="form-select" name="egg_type_id" required>
+                                <option value="" disabled selected>Çeşit seçiniz...</option>
+                                {% for et in egg_types %}
+                                <option value="{{ et.id }}">{{ et.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-123 me-1"></i> Miktar (Adet)
+                            </label>
+                            <input type="number" class="form-control" name="quantity"
+                                   min="1" placeholder="0" required id="p_qty">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-currency-lira me-1"></i> Birim Fiyat (₺)
+                            </label>
+                            <input type="number" class="form-control" name="unit_price"
+                                   min="0" step="0.01" placeholder="0.00" required id="p_price">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calculator me-1"></i> Toplam Tutar
+                            </label>
+                            <input type="text" class="form-control bg-light" id="p_total"
+                                   readonly placeholder="0.00 ₺">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-calendar me-1"></i> Tarih
+                            </label>
+                            <input type="date" class="form-control" name="date"
+                                   value="{{ today }}" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-chat-text me-1"></i> Not (Opsiyonel)
+                            </label>
+                            <input type="text" class="form-control" name="note"
+                                   placeholder="Açıklama ekleyin...">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success btn-lg" {% if not suppliers %}disabled{% endif %}>
+                                <i class="bi bi-check-circle me-1"></i> Tedarik Kaydet
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tedarik Geçmişi -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-success bg-opacity-10 border-0">
+                <h5 class="mb-0 fw-bold text-success">
+                    <i class="bi bi-clock-history me-1"></i> Tedarik Geçmişim
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if purchases %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Tedarikçi</th>
+                                <th>Çeşit</th>
+                                <th class="text-end">Adet</th>
+                                <th class="text-end">Birim ₺</th>
+                                <th class="text-end">Toplam ₺</th>
+                                <th>Not</th>
+                                <th class="text-center">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in purchases %}
+                            <tr>
+                                <td>{{ p.date }}</td>
+                                <td class="fw-semibold">{{ p.supplier_name }}</td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ p.egg_type_name }}</span>
+                                </td>
+                                <td class="text-end">{{ p.quantity }}</td>
+                                <td class="text-end">{{ "%.2f"|format(p.unit_price) }}</td>
+                                <td class="text-end fw-bold text-success">{{ "%.2f"|format(p.total_price) }}</td>
+                                <td><small class="text-muted">{{ p.note or '-' }}</small></td>
+                                <td class="text-center">
+                                    <form method="POST" action="{{ url_for('delete_purchase', pid=p.id) }}"
+                                          onsubmit="return confirm('Bu kaydı silmek istediğinize emin misiniz?')">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">
+                    <i class="bi bi-inbox me-1"></i> Henüz tedarik kaydı bulunmuyor.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const qty = document.getElementById('p_qty');
+    const price = document.getElementById('p_price');
+    const total = document.getElementById('p_total');
+    function calcTotal() {
+        const q = parseFloat(qty.value) || 0;
+        const p = parseFloat(price.value) || 0;
+        total.value = (q * p).toFixed(2) + ' ₺';
+    }
+    qty.addEventListener('input', calcTotal);
+    price.addEventListener('input', calcTotal);
+</script>
+{% endblock %}
