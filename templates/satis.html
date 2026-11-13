@@ -193,42 +193,6 @@
                                     </form>
                                 </td>
                             </tr>
-
-                            <!-- Tahsilat Güncelleme Modalı -->
-                            <div class="modal fade" id="collectModal{{ s.id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form method="POST" action="{{ url_for('update_sale_payment', sid=s.id) }}">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Tahsilat Tutarını Güncelle</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <p class="mb-1"><strong>Alıcı:</strong> {{ s.buyer_name }}</p>
-                                                <p class="mb-1"><strong>Toplam Satış Tutarı:</strong> {{ "%.2f"|format(s.total_price) }} ₺</p>
-                                                <p class="mb-3 text-muted"><small>Tarih: {{ s.date }} | {{ s.quantity }} adet {{ s.egg_type_name }}</small></p>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Bugüne Kadar Alınan Toplam Tahsilat (₺)</label>
-                                                    <input type="number" step="0.01" min="0" max="{{ s.total_price }}"
-                                                           class="form-control form-control-lg" name="paid_amount"
-                                                           value="{{ s.paid_amount }}" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label fw-semibold">Tahsilat Türü</label>
-                                                    <select class="form-select" name="payment_method">
-                                                        <option value="Nakit" {% if s.payment_method != 'Kart' %}selected{% endif %}>💵 Nakit</option>
-                                                        <option value="Kart" {% if s.payment_method == 'Kart' %}selected{% endif %}>💳 Kart</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                <button type="submit" class="btn btn-primary">Kaydet</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -243,6 +207,48 @@
 
     </div>
 </div>
+
+<!-- Tahsilat Güncelleme Modalları (Tablo Dışında) -->
+{% for s in sales %}
+<div class="modal fade" id="collectModal{{ s.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_sale_payment', sid=s.id) }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-cash me-1"></i> Tahsilat Tutarını Güncelle
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="bg-light p-3 rounded mb-3">
+                        <p class="mb-1"><strong>Alıcı:</strong> {{ s.buyer_name }}</p>
+                        <p class="mb-1"><strong>Toplam Satış Tutarı:</strong> {{ "%.2f"|format(s.total_price) }} ₺</p>
+                        <p class="mb-0 text-muted"><small>Tarih: {{ s.date }} | {{ s.quantity }} adet {{ s.egg_type_name }}</small></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bugüne Kadar Alınan Toplam Tahsilat (₺)</label>
+                        <input type="number" step="0.01" min="0" max="{{ s.total_price }}"
+                               class="form-control form-control-lg border-primary fw-bold" name="paid_amount"
+                               value="{{ s.paid_amount }}" required inputmode="decimal">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">Tahsilat Türü</label>
+                        <select class="form-select form-select-lg" name="payment_method">
+                            <option value="Nakit" {% if s.payment_method != 'Kart' %}selected{% endif %}>💵 Nakit</option>
+                            <option value="Kart" {% if s.payment_method == 'Kart' %}selected{% endif %}>💳 Kart</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
 
 {% block scripts %}

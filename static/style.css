@@ -116,7 +116,48 @@ body {
     }
 }
 
+/* Mobile Bottom Nav */
+.mobile-bottom-nav {
+    z-index: 1040;
+    height: 60px;
+    background: #ffffff !important;
+}
+
+.nav-link-mobile {
+    flex: 1;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.72rem;
+    padding: 4px 0;
+    transition: color 0.15s ease-in-out;
+}
+
+.nav-link-mobile:hover, .nav-link-mobile.active {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.nav-link-mobile i {
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+/* Modals on Mobile */
+.modal {
+    z-index: 1060 !important;
+}
+
+.modal-backdrop {
+    z-index: 1055 !important;
+}
+
 /* Responsive */
+@media (max-width: 991px) {
+    main {
+        padding-bottom: 75px !important;
+    }
+}
+
 @media (max-width: 768px) {
     .display-6 {
         font-size: 1.5rem;

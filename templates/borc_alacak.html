@@ -74,69 +74,98 @@
             </div>
         </div>
 
-        <!-- 1. TEDARİKÇİ BORÇLARI -->
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-danger bg-opacity-10 border-0 py-3 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-danger">
-                    <i class="bi bi-truck me-2"></i> Tedarikçi Firmalara Borçlarımız
-                </h5>
-                <span class="badge bg-danger">{{ supplier_debts|length }} Tedarikçi</span>
-            </div>
-            <div class="card-body p-0">
-                {% if supplier_debts %}
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tedarikçi Firma</th>
-                                <th class="text-center">İşlem Sayısı</th>
-                                <th class="text-end">Toplam Alım ₺</th>
-                                <th class="text-end">Yapılan Ödeme ₺</th>
-                                <th class="text-end">Kalan Borç ₺</th>
-                                <th class="text-center">Durum</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for s in supplier_debts %}
-                            <tr>
-                                <td class="fw-bold">{{ s.name }}</td>
-                                <td class="text-center">{{ s.tx_count }} alım</td>
-                                <td class="text-end">{{ "%.2f"|format(s.total_amount) }} ₺</td>
-                                <td class="text-end text-success fw-semibold">{{ "%.2f"|format(s.total_paid) }} ₺</td>
-                                <td class="text-end fw-bold {% if s.remaining_debt > 0.01 %}text-danger fs-6{% else %}text-muted{% endif %}">
-                                    {{ "%.2f"|format(s.remaining_debt) }} ₺
-                                </td>
-                                <td class="text-center">
-                                    {% if s.remaining_debt <= 0.01 %}
-                                    <span class="badge bg-success-subtle text-success">Borç Yok</span>
-                                    {% else %}
-                                    <span class="badge bg-danger-subtle text-danger">Borç Var</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
+        <!-- 1. HIZLI İŞLEM: BEKLEYEN ÖDEMELER & TAHSİLATLAR (MOBİL İÇİN ÜSTTE) -->
+        {% if pending_purchases or pending_sales %}
+        <div class="row g-3 mb-4" id="hizli-islemler">
+            <!-- Bekleyen Tahsilatlar (Müşterilerden Para Alma) -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-success">
+                            <i class="bi bi-cash-stack me-2"></i> Tahsilatı Bekleyen Satışlar
+                        </h5>
+                        <span class="badge bg-success">{{ pending_sales|length }} İşlem</span>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if pending_sales %}
+                        <div class="list-group list-group-flush">
+                            {% for s in pending_sales %}
+                            <div class="list-group-item p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <div class="fw-bold fs-6 text-dark">{{ s.buyer_name }}</div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3 me-1"></i>{{ s.date }} · {{ s.quantity }} adet {{ s.egg_type_name }}
+                                        {% if view_mode != 'my' %} · <span class="badge bg-light text-dark border">{{ s.user_name }}</span>{% endif %}
+                                    </small>
+                                    <div class="small mt-1">
+                                        Toplam: {{ "%.2f"|format(s.total_price) }} ₺ | Alınan: <span class="text-success">{{ "%.2f"|format(s.paid_amount) }} ₺</span>
+                                    </div>
+                                </div>
+                                <div class="text-end ms-auto">
+                                    <div class="fw-bold text-danger fs-5 mb-1">
+                                        {{ "%.2f"|format(s.remaining_receivable) }} ₺
+                                    </div>
+                                    <button type="button" class="btn btn-success btn-sm px-3 shadow-sm"
+                                            data-bs-toggle="modal" data-bs-target="#collectModal{{ s.id }}">
+                                        <i class="bi bi-cash me-1"></i> Tahsil Et
+                                    </button>
+                                </div>
+                            </div>
                             {% endfor %}
-                        </tbody>
-                        <tfoot class="table-light">
-                            <tr class="fw-bold">
-                                <td>TOPLAM</td>
-                                <td></td>
-                                <td class="text-end">{{ "%.2f"|format(supplier_debts|sum(attribute='total_amount')) }} ₺</td>
-                                <td class="text-end text-success">{{ "%.2f"|format(supplier_debts|sum(attribute='total_paid')) }} ₺</td>
-                                <td class="text-end text-danger fs-6">{{ "%.2f"|format(total_debt) }} ₺</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-4 mb-0">Tahsilat bekleyen satış yok.</p>
+                        {% endif %}
+                    </div>
                 </div>
-                {% else %}
-                <p class="text-muted text-center py-4 mb-0">
-                    <i class="bi bi-check-circle me-1 text-success"></i> Henüz kayıtlı tedarik alımı bulunmuyor.
-                </p>
-                {% endif %}
+            </div>
+
+            <!-- Bekleyen Borç Ödemeleri (Tedarikçiye Para Ödeme) -->
+            <div class="col-lg-6">
+                <div class="card border-0 shadow-sm h-100 border-start border-danger border-4">
+                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+                        <h5 class="fw-bold mb-0 text-danger">
+                            <i class="bi bi-credit-card me-2"></i> Ödemesi Bekleyen Alışlar (Borç)
+                        </h5>
+                        <span class="badge bg-danger">{{ pending_purchases|length }} İşlem</span>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if pending_purchases %}
+                        <div class="list-group list-group-flush">
+                            {% for p in pending_purchases %}
+                            <div class="list-group-item p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div>
+                                    <div class="fw-bold fs-6 text-dark">{{ p.supplier_name }}</div>
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar3 me-1"></i>{{ p.date }} · {{ p.quantity }} adet {{ p.egg_type_name }}
+                                        {% if view_mode != 'my' %} · <span class="badge bg-light text-dark border">{{ p.user_name }}</span>{% endif %}
+                                    </small>
+                                    <div class="small mt-1">
+                                        Toplam: {{ "%.2f"|format(p.total_price) }} ₺ | Ödenen: <span class="text-success">{{ "%.2f"|format(p.paid_amount) }} ₺</span>
+                                    </div>
+                                </div>
+                                <div class="text-end ms-auto">
+                                    <div class="fw-bold text-danger fs-5 mb-1">
+                                        {{ "%.2f"|format(p.remaining_debt) }} ₺
+                                    </div>
+                                    <button type="button" class="btn btn-danger btn-sm px-3 shadow-sm"
+                                            data-bs-toggle="modal" data-bs-target="#payModal{{ p.id }}">
+                                        <i class="bi bi-wallet2 me-1"></i> Ödeme Yap
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted text-center py-4 mb-0">Eksik ödemeli alış yok.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- 2. ALICI FİRMA ALACAKLARI -->
+        <!-- 2. ALICI FİRMA ALACAKLARI (CARİ ÖZETİ) -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-success bg-opacity-10 border-0 py-3 d-flex justify-content-between align-items-center">
                 <h5 class="fw-bold mb-0 text-success">
@@ -198,176 +227,166 @@
             </div>
         </div>
 
-        <!-- 3. BEKLEYEN ÖDEMELER & TAHSİLATLAR (EKSİK İŞLEMLER DETAYI) -->
-        {% if pending_purchases or pending_sales %}
-        <div class="row g-3 mb-4">
-            <!-- Bekleyen Borç Ödemeleri -->
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                        <h6 class="fw-bold mb-0 text-danger">
-                            <i class="bi bi-exclamation-circle me-1"></i> Ödemesi Eksik Kalan Alışlar
-                        </h6>
-                        <span class="badge bg-danger">{{ pending_purchases|length }}</span>
-                    </div>
-                    <div class="card-body p-0">
-                        {% if pending_purchases %}
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 small">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Tarih</th>
-                                        <th>Firma</th>
-                                        <th class="text-end">Kalan Borç</th>
-                                        <th class="text-center">Ödeme</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for p in pending_purchases %}
-                                    <tr>
-                                        <td>{{ p.date }}</td>
-                                        <td>
-                                            <div class="fw-semibold">{{ p.supplier_name }}</div>
-                                            <small class="text-muted">{{ p.user_name }} ({{ p.quantity }} adet)</small>
-                                        </td>
-                                        <td class="text-end text-danger fw-bold">
-                                            {{ "%.2f"|format(p.remaining_debt) }} ₺
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-outline-danger btn-sm"
-                                                    data-bs-toggle="modal" data-bs-target="#payModal{{ p.id }}">
-                                                Öde
-                                            </button>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="payModal{{ p.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ url_for('update_purchase_payment', pid=p.id) }}">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Ödeme Tutarını Güncelle</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body text-start">
-                                                        <p class="mb-1"><strong>Tedarikçi:</strong> {{ p.supplier_name }}</p>
-                                                        <p class="mb-1"><strong>Toplam Alış:</strong> {{ "%.2f"|format(p.total_price) }} ₺</p>
-                                                        <p class="mb-1 text-danger"><strong>Kalan Borç:</strong> {{ "%.2f"|format(p.remaining_debt) }} ₺</p>
-                                                        <div class="mt-3">
-                                                            <label class="form-label fw-semibold">Bugüne Kadar Yapılan Toplam Ödeme (₺)</label>
-                                                            <input type="number" step="0.01" min="0" max="{{ p.total_price }}"
-                                                                   class="form-control form-control-lg" name="paid_amount"
-                                                                   value="{{ p.paid_amount }}" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p class="text-muted text-center py-4 mb-0">Eksik ödemeli alış yok.</p>
-                        {% endif %}
-                    </div>
-                </div>
+        <!-- 3. TEDARİKÇİ BORÇLARI (CARİ ÖZETİ) -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-danger bg-opacity-10 border-0 py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-danger">
+                    <i class="bi bi-truck me-2"></i> Tedarikçi Firmalara Borçlarımız
+                </h5>
+                <span class="badge bg-danger">{{ supplier_debts|length }} Tedarikçi</span>
             </div>
-
-            <!-- Bekleyen Tahsilatlar -->
-            <div class="col-lg-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
-                        <h6 class="fw-bold mb-0 text-success">
-                            <i class="bi bi-clock-history me-1"></i> Tahsilatı Eksik Kalan Satışlar
-                        </h6>
-                        <span class="badge bg-success">{{ pending_sales|length }}</span>
-                    </div>
-                    <div class="card-body p-0">
-                        {% if pending_sales %}
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 small">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Tarih</th>
-                                        <th>Müşteri</th>
-                                        <th class="text-end">Kalan Alacak</th>
-                                        <th class="text-center">Tahsil</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for s in pending_sales %}
-                                    <tr>
-                                        <td>{{ s.date }}</td>
-                                        <td>
-                                            <div class="fw-semibold">{{ s.buyer_name }}</div>
-                                            <small class="text-muted">{{ s.user_name }} ({{ s.quantity }} adet)</small>
-                                        </td>
-                                        <td class="text-end text-danger fw-bold">
-                                            {{ "%.2f"|format(s.remaining_receivable) }} ₺
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-outline-success btn-sm"
-                                                    data-bs-toggle="modal" data-bs-target="#collectModal{{ s.id }}">
-                                                Tahsil Et
-                                            </button>
-                                        </td>
-                                    </tr>
-
-                                    <!-- Modal -->
-                                    <div class="modal fade" id="collectModal{{ s.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ url_for('update_sale_payment', sid=s.id) }}">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Tahsilat Tutarını Güncelle</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body text-start">
-                                                        <p class="mb-1"><strong>Müşteri:</strong> {{ s.buyer_name }}</p>
-                                                        <p class="mb-1"><strong>Toplam Satış:</strong> {{ "%.2f"|format(s.total_price) }} ₺</p>
-                                                        <p class="mb-1 text-danger"><strong>Kalan Alacak:</strong> {{ "%.2f"|format(s.remaining_receivable) }} ₺</p>
-                                                        <div class="mt-3">
-                                                            <label class="form-label fw-semibold">Bugüne Kadar Alınan Toplam Tahsilat (₺)</label>
-                                                            <input type="number" step="0.01" min="0" max="{{ s.total_price }}"
-                                                                   class="form-control form-control-lg" name="paid_amount"
-                                                                   value="{{ s.paid_amount }}" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                        <button type="submit" class="btn btn-success">Kaydet</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <p class="text-muted text-center py-4 mb-0">Tahsilat bekleyen satış yok.</p>
-                        {% endif %}
-                    </div>
+            <div class="card-body p-0">
+                {% if supplier_debts %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tedarikçi Firma</th>
+                                <th class="text-center">İşlem Sayısı</th>
+                                <th class="text-end">Toplam Alım ₺</th>
+                                <th class="text-end">Yapılan Ödeme ₺</th>
+                                <th class="text-end">Kalan Borç ₺</th>
+                                <th class="text-center">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in supplier_debts %}
+                            <tr>
+                                <td class="fw-bold">{{ s.name }}</td>
+                                <td class="text-center">{{ s.tx_count }} alım</td>
+                                <td class="text-end">{{ "%.2f"|format(s.total_amount) }} ₺</td>
+                                <td class="text-end text-success fw-semibold">{{ "%.2f"|format(s.total_paid) }} ₺</td>
+                                <td class="text-end fw-bold {% if s.remaining_debt > 0.01 %}text-danger fs-6{% else %}text-muted{% endif %}">
+                                    {{ "%.2f"|format(s.remaining_debt) }} ₺
+                                </td>
+                                <td class="text-center">
+                                    {% if s.remaining_debt <= 0.01 %}
+                                    <span class="badge bg-success-subtle text-success">Borç Yok</span>
+                                    {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Borç Var</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr class="fw-bold">
+                                <td>TOPLAM</td>
+                                <td></td>
+                                <td class="text-end">{{ "%.2f"|format(supplier_debts|sum(attribute='total_amount')) }} ₺</td>
+                                <td class="text-end text-success">{{ "%.2f"|format(supplier_debts|sum(attribute='total_paid')) }} ₺</td>
+                                <td class="text-end text-danger fs-6">{{ "%.2f"|format(total_debt) }} ₺</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
+                {% else %}
+                <p class="text-muted text-center py-4 mb-0">
+                    <i class="bi bi-check-circle me-1 text-success"></i> Henüz kayıtlı tedarik alımı bulunmuyor.
+                </p>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
 
         <!-- Yazdır -->
-        <div class="text-center mb-4">
-            <button onclick="window.print()" class="btn btn-outline-dark btn-lg">
+        <div class="text-center mb-5 pb-4">
+            <button onclick="window.print()" class="btn btn-outline-dark btn-lg shadow-sm">
                 <i class="bi bi-printer me-1"></i> Cari Durum Raporunu Yazdır / PDF
             </button>
         </div>
 
     </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODALLAR: TABLO DIŞINDA EN ALTTA (MOBİL İÇİN TAM UYUMLU)  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- Tahsilat Modalları -->
+{% for s in pending_sales %}
+<div class="modal fade" id="collectModal{{ s.id }}" tabindex="-1" aria-labelledby="collectModalLabel{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_sale_payment', sid=s.id) }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="collectModalLabel{{ s.id }}">
+                        <i class="bi bi-cash me-1"></i> Tahsilat Tutarını Güncelle
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-start p-4">
+                    <div class="bg-light p-3 rounded mb-3">
+                        <div class="mb-1"><strong>Müşteri:</strong> {{ s.buyer_name }}</div>
+                        <div class="mb-1"><strong>Toplam Satış:</strong> {{ "%.2f"|format(s.total_price) }} ₺</div>
+                        <div class="text-danger fw-bold"><strong>Kalan Alacak:</strong> {{ "%.2f"|format(s.remaining_receivable) }} ₺</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bugüne Kadar Alınan Toplam Tahsilat (₺)</label>
+                        <input type="number" step="0.01" min="0" max="{{ s.total_price }}"
+                               class="form-control form-control-lg border-success fw-bold" name="paid_amount"
+                               value="{{ s.paid_amount }}" required inputmode="decimal">
+                        <div class="form-text text-muted">Müşteri tüm parayı verdiyse {{ "%.2f"|format(s.total_price) }} ₺ yazın.</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">Tahsilat Türü</label>
+                        <select class="form-select form-select-lg" name="payment_method">
+                            <option value="Nakit" {% if s.payment_method != 'Kart' %}selected{% endif %}>💵 Nakit</option>
+                            <option value="Kart" {% if s.payment_method == 'Kart' %}selected{% endif %}>💳 Kart</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Ödeme Modalları -->
+{% for p in pending_purchases %}
+<div class="modal fade" id="payModal{{ p.id }}" tabindex="-1" aria-labelledby="payModalLabel{{ p.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_purchase_payment', pid=p.id) }}">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold" id="payModalLabel{{ p.id }}">
+                        <i class="bi bi-wallet2 me-1"></i> Ödeme Tutarını Güncelle
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-start p-4">
+                    <div class="bg-light p-3 rounded mb-3">
+                        <div class="mb-1"><strong>Tedarikçi:</strong> {{ p.supplier_name }}</div>
+                        <div class="mb-1"><strong>Toplam Alış:</strong> {{ "%.2f"|format(p.total_price) }} ₺</div>
+                        <div class="text-danger fw-bold"><strong>Kalan Borç:</strong> {{ "%.2f"|format(p.remaining_debt) }} ₺</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Bugüne Kadar Yapılan Toplam Ödeme (₺)</label>
+                        <input type="number" step="0.01" min="0" max="{{ p.total_price }}"
+                               class="form-control form-control-lg border-danger fw-bold" name="paid_amount"
+                               value="{{ p.paid_amount }}" required inputmode="decimal">
+                        <div class="form-text text-muted">Borcun tamamını ödediyseniz {{ "%.2f"|format(p.total_price) }} ₺ yazın.</div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold">Ödeme Türü</label>
+                        <select class="form-select form-select-lg" name="payment_method">
+                            <option value="Nakit" {% if p.payment_method != 'Kart' %}selected{% endif %}>💵 Nakit</option>
+                            <option value="Kart" {% if p.payment_method == 'Kart' %}selected{% endif %}>💳 Kart</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-danger px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
 {% endblock %}

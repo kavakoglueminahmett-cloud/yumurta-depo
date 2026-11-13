@@ -16,22 +16,22 @@
         <ul class="nav nav-pills nav-fill mb-4 bg-white p-2 rounded shadow-sm" id="yonetimTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active fw-semibold" id="cesitler-tab" data-bs-toggle="tab" data-bs-target="#cesitler" type="button" role="tab">
-                    <i class="bi bi-egg me-1"></i> Yumurta Çeşitleri & Başlangıç Stoğu
+                    <i class="bi bi-egg me-1"></i> Çeşitler & Başlangıç Stoğu
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-semibold" id="tedarikciler-tab" data-bs-toggle="tab" data-bs-target="#tedarikciler" type="button" role="tab">
-                    <i class="bi bi-truck me-1"></i> Tedarikçi Firmalar
+                    <i class="bi bi-truck me-1"></i> Tedarikçiler
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-semibold" id="alicilar-tab" data-bs-toggle="tab" data-bs-target="#alicilar" type="button" role="tab">
-                    <i class="bi bi-shop me-1"></i> Alıcı / Müşteri Firmalar
+                    <i class="bi bi-shop me-1"></i> Alıcı Firmalar
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-semibold" id="kullanicilar-tab" data-bs-toggle="tab" data-bs-target="#kullanicilar" type="button" role="tab">
-                    <i class="bi bi-people me-1"></i> Kullanıcı Yönetimi
+                    <i class="bi bi-people me-1"></i> Kullanıcılar
                 </button>
             </li>
         </ul>
@@ -111,35 +111,6 @@
                                             </form>
                                         </td>
                                     </tr>
-
-                                    <!-- Düzenleme Modalı -->
-                                    <div class="modal fade" id="editTypeModal{{ et.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ url_for('update_egg_type', eid=et.id) }}">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Yumurta Çeşidini Düzenle</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Çeşit Adı</label>
-                                                            <input type="text" class="form-control" name="name" value="{{ et.name }}" required>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Başlangıç Stoğu (Adet)</label>
-                                                            <input type="number" class="form-control" name="initial_stock" min="0" value="{{ et.initial_stock }}" required>
-                                                            <div class="form-text text-muted">Depoya başlangıçta eklenen miktar (alım yapılmadan önceki hazır stok).</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                     {% else %}
                                     <tr>
                                         <td colspan="4" class="text-center py-4 text-muted">
@@ -210,30 +181,6 @@
                                             </form>
                                         </td>
                                     </tr>
-
-                                    <!-- Düzenleme Modalı -->
-                                    <div class="modal fade" id="editSupModal{{ s.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ url_for('update_supplier', sid=s.id) }}">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Tedarikçi Düzenle</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Firma Adı</label>
-                                                            <input type="text" class="form-control" name="name" value="{{ s.name }}" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                        <button type="submit" class="btn btn-success">Kaydet</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                     {% else %}
                                     <tr>
                                         <td colspan="3" class="text-center py-4 text-muted">
@@ -304,30 +251,6 @@
                                             </form>
                                         </td>
                                     </tr>
-
-                                    <!-- Düzenleme Modalı -->
-                                    <div class="modal fade" id="editBuyerModal{{ b.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ url_for('update_buyer', bid=b.id) }}">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Alıcı Firmayı Düzenle</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Firma Adı</label>
-                                                            <input type="text" class="form-control" name="name" value="{{ b.name }}" required>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                     {% else %}
                                     <tr>
                                         <td colspan="3" class="text-center py-4 text-muted">
@@ -416,39 +339,6 @@
                                             {% endif %}
                                         </td>
                                     </tr>
-
-                                    <!-- Kullanıcı Düzenleme Modalı -->
-                                    <div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <form method="POST" action="{{ url_for('update_user', uid=u.id) }}">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Kullanıcı Bilgilerini / Şifresini Düzenle</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Adı Soyadı</label>
-                                                            <input type="text" class="form-control" name="full_name" value="{{ u.full_name }}" required>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Kullanıcı Adı</label>
-                                                            <input type="text" class="form-control" name="username" value="{{ u.username }}" required>
-                                                        </div>
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold">Yeni Şifre</label>
-                                                            <input type="password" class="form-control" name="password" placeholder="Değiştirmek istemiyorsanız boş bırakın">
-                                                            <small class="text-muted">Boş bırakırsanız mevcut şifre korunur.</small>
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
                                     {% endfor %}
                                 </tbody>
                             </table>
@@ -461,6 +351,129 @@
 
     </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- YÖNETİM MODALLARI (TABLO DIŞINDA EN ALTTA - MOBİL UYUMLU)  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+<!-- Çeşit Düzenleme Modalları -->
+{% for et in egg_types %}
+<div class="modal fade" id="editTypeModal{{ et.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_egg_type', eid=et.id) }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">Yumurta Çeşidini Düzenle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Çeşit Adı</label>
+                        <input type="text" class="form-control" name="name" value="{{ et.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Başlangıç Stoğu (Adet)</label>
+                        <input type="number" class="form-control" name="initial_stock" min="0" value="{{ et.initial_stock }}" required>
+                        <div class="form-text text-muted">Depoya başlangıçta eklenen miktar (alım yapılmadan önceki hazır stok).</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Tedarikçi Düzenleme Modalları -->
+{% for s in suppliers %}
+<div class="modal fade" id="editSupModal{{ s.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_supplier', sid=s.id) }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold">Tedarikçi Düzenle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Firma Adı</label>
+                        <input type="text" class="form-control" name="name" value="{{ s.name }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Alıcı Düzenleme Modalları -->
+{% for b in buyers %}
+<div class="modal fade" id="editBuyerModal{{ b.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_buyer', bid=b.id) }}">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">Alıcı Firmayı Düzenle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Firma Adı</label>
+                        <input type="text" class="form-control" name="name" value="{{ b.name }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Kullanıcı Düzenleme Modalları -->
+{% for u in users %}
+<div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <form method="POST" action="{{ url_for('update_user', uid=u.id) }}">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold">Kullanıcı Bilgilerini / Şifresini Düzenle</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Adı Soyadı</label>
+                        <input type="text" class="form-control" name="full_name" value="{{ u.full_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Kullanıcı Adı</label>
+                        <input type="text" class="form-control" name="username" value="{{ u.username }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Yeni Şifre</label>
+                        <input type="password" class="form-control" name="password" placeholder="Değiştirmek istemiyorsanız boş bırakın">
+                        <small class="text-muted">Boş bırakırsanız mevcut şifre korunur.</small>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
 {% endblock %}
 
 {% block scripts %}
