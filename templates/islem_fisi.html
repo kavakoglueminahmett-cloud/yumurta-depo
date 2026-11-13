@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Tedarik Fişi' if tx_type == 'tedarik' else 'Satış Fişi' }} #{{ tx.id }} - Yumurta Depo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+
+        <!-- Ekran Kontrolleri (Yazdırmada Gizlenir) -->
+        <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+            <a href="{{ url_for('tedarik' if tx_type == 'tedarik' else 'satis') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Geri Dön
+            </a>
+            <div>
+                <button onclick="window.print()" class="btn btn-primary btn-lg shadow-sm">
+                    <i class="bi bi-printer me-1"></i> Fişi Yazdır / PDF Kaydet
+                </button>
+            </div>
+        </div>
+
+        <!-- Yazdırılabilir Fiş Kartı -->
+        <div class="card border shadow-sm p-4 receipt-card" id="printable-receipt">
+            <!-- Fiş Üst Başlık -->
+            <div class="border-bottom pb-3 mb-4">
+                <div class="row align-items-center">
+                    <div class="col-7">
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="fs-2 me-2">🥚</span>
+                            <div>
+                                <h4 class="fw-bold mb-0 text-dark">YUMURTA DEPO</h4>
+                                <small class="text-muted">Depo Yönetim ve Takip Sistemi</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-5 text-end">
+                        <span class="badge {% if tx_type == 'tedarik' %}bg-success{% else %}bg-primary{% endif %} fs-6 px-3 py-2">
+                            {{ 'TEDARİK / ALIŞ FİŞİ' if tx_type == 'tedarik' else 'SATIŞ FİŞİ' }}
+                        </span>
+                        <div class="fw-bold text-muted small mt-2">
+                            Fiş No: #{{ 'TD' if tx_type == 'tedarik' else 'ST' }}-{{ "%05d"|format(tx.id) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fiş Bilgi Izgarası -->
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded-3 h-100">
+                        <div class="text-muted small text-uppercase fw-semibold mb-1">
+                            {{ 'Tedarikçi Firma' if tx_type == 'tedarik' else 'Müşteri / Alıcı Firma' }}
+                        </div>
+                        <div class="fs-5 fw-bold text-dark">
+                            {{ tx.supplier_name if tx_type == 'tedarik' else tx.buyer_name }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded-3 h-100">
+                        <div class="row g-2 small">
+                            <div class="col-6 text-muted">İşlem Tarihi:</div>
+                            <div class="col-6 fw-bold text-end">{{ tx.date }}</div>
+                            <div class="col-6 text-muted">İşlemi Yapan:</div>
+                            <div class="col-6 fw-bold text-end">{{ tx.user_name }}</div>
+                            <div class="col-6 text-muted">Ödeme Yöntemi:</div>
+                            <div class="col-6 fw-bold text-end">
+                                {{ '💳 Kart' if tx.payment_method == 'Kart' else '💵 Nakit' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- İşlem Detay Tablosu -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-2">Ürün / Çeşit</th>
+                            <th class="text-end py-2">Miktar</th>
+                            <th class="text-end py-2">Birim Fiyat</th>
+                            <th class="text-end py-2">Toplam Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="fw-bold py-3">
+                                {{ tx.egg_type_name }}
+                            </td>
+                            <td class="text-end fw-semibold py-3">{{ tx.quantity }} adet</td>
+                            <td class="text-end py-3">{{ "%.2f"|format(tx.unit_price) }} ₺</td>
+                            <td class="text-end fw-bold fs-6 py-3">{{ "%.2f"|format(tx.total_price) }} ₺</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Finansal Özet Kutusu -->
+            <div class="row justify-content-end mb-4">
+                <div class="col-md-6 col-sm-8">
+                    <div class="border rounded-3 p-3 bg-light">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Toplam Tutar:</span>
+                            <span class="fw-bold">{{ "%.2f"|format(tx.total_price) }} ₺</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">{{ 'Ödenen Tutar' if tx_type == 'tedarik' else 'Tahsil Edilen' }}:</span>
+                            <span class="fw-bold text-success">{{ "%.2f"|format(tx.paid_amount) }} ₺</span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 border-top">
+                            <span class="fw-bold text-dark">{{ 'Kalan Borç' if tx_type == 'tedarik' else 'Kalan Alacak' }}:</span>
+                            {% set remaining = tx.remaining_debt if tx_type == 'tedarik' else tx.remaining_receivable %}
+                            <span class="fw-bold fs-5 {% if remaining > 0.01 %}text-danger{% else %}text-success{% endif %}">
+                                {{ "%.2f"|format(remaining) }} ₺
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Not -->
+            {% if tx.note %}
+            <div class="mb-4 p-2 bg-light rounded border small">
+                <strong>Açıklama / Not:</strong> {{ tx.note }}
+            </div>
+            {% endif %}
+
+            <!-- İmzalar -->
+            <div class="row pt-4 mt-3 border-top text-center">
+                <div class="col-6">
+                    <div class="small text-muted mb-4">Teslim Eden</div>
+                    <div class="border-top mx-auto" style="width: 140px;"></div>
+                    <small class="text-muted d-block mt-1">İmza</small>
+                </div>
+                <div class="col-6">
+                    <div class="small text-muted mb-4">Teslim Alan</div>
+                    <div class="border-top mx-auto" style="width: 140px;"></div>
+                    <small class="text-muted d-block mt-1">İmza</small>
+                </div>
+            </div>
+
+            <!-- Alt Bilgi -->
+            <div class="text-center text-muted small mt-4 pt-3 border-top">
+                Bu fiş Yumurta Depo Yönetim Sistemi tarafından düzenlenmiştir. &bull; {{ today }}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+@media print {
+    .receipt-card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        margin: 0 auto;
+        padding: 20px !important;
+    }
+}
+</style>
+{% endblock %}

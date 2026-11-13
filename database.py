@@ -267,6 +267,23 @@ def delete_purchase(purchase_id, user_id):
     conn.close()
 
 
+def get_purchase_by_id(purchase_id):
+    """Tek bir tedarik (alış) işleminin detayını getirir."""
+    conn = get_db()
+    row = conn.execute("""
+        SELECT p.*, et.name AS egg_type_name, sup.name AS supplier_name,
+               u.full_name AS user_name,
+               (p.total_price - p.paid_amount) AS remaining_debt
+        FROM purchases p
+        JOIN egg_types et ON et.id = p.egg_type_id
+        JOIN suppliers sup ON sup.id = p.supplier_id
+        JOIN users u ON u.id = p.user_id
+        WHERE p.id = ?
+    """, (purchase_id,)).fetchone()
+    conn.close()
+    return row
+
+
 # ═══════════════════════════════════════════════════════════
 #  SATIŞ
 # ═══════════════════════════════════════════════════════════
@@ -338,6 +355,23 @@ def delete_sale(sale_id, user_id):
     conn.execute("DELETE FROM sales WHERE id = ? AND user_id = ?", (sale_id, user_id))
     conn.commit()
     conn.close()
+
+
+def get_sale_by_id(sale_id):
+    """Tek bir satış işleminin detayını getirir."""
+    conn = get_db()
+    row = conn.execute("""
+        SELECT s.*, et.name AS egg_type_name, b.name AS buyer_name,
+               u.full_name AS user_name,
+               (s.total_price - s.paid_amount) AS remaining_receivable
+        FROM sales s
+        JOIN egg_types et ON et.id = s.egg_type_id
+        JOIN buyers b ON b.id = s.buyer_id
+        JOIN users u ON u.id = s.user_id
+        WHERE s.id = ?
+    """, (sale_id,)).fetchone()
+    conn.close()
+    return row
 
 
 # ═══════════════════════════════════════════════════════════

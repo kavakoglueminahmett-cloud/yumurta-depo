@@ -180,7 +180,11 @@
                                     {% endif %}
                                 </td>
                                 <td><small class="text-muted">{{ s.note or '-' }}</small></td>
-                                <td class="text-center">
+                                <td class="text-center text-nowrap">
+                                    <a href="{{ url_for('print_sale', sid=s.id) }}"
+                                       class="btn btn-outline-secondary btn-sm me-1" title="Fiş Yazdır">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
                                     <button type="button" class="btn btn-outline-primary btn-sm me-1"
                                             data-bs-toggle="modal" data-bs-target="#collectModal{{ s.id }}" title="Tahsilat Güncelle">
                                         <i class="bi bi-wallet2"></i>

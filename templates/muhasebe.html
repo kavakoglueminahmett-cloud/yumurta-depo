@@ -5,12 +5,31 @@
 <div class="row justify-content-center">
     <div class="col-lg-10">
 
-        <h2 class="fw-bold mb-4">
+        <!-- Sayfa Başlığı (Yazdırmada Gizlenir) -->
+        <h2 class="fw-bold mb-4 d-print-none">
             <i class="bi bi-file-earmark-spreadsheet text-warning me-2"></i> Muhasebe Raporu
         </h2>
 
-        <!-- Tarih Filtresi -->
-        <div class="card border-0 shadow-sm mb-4">
+        <!-- Yazdırma Başlığı (Sadece Yazdırmada ve PDF'te Görünür) -->
+        {% if report_generated %}
+        <div class="d-none d-print-block mb-3 border-bottom pb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="fw-bold mb-0 text-dark">🥚 YUMURTA DEPOSU — MUHASEBE RAPORU</h4>
+                    <div class="small text-muted mt-1">
+                        <strong>Dönem:</strong> {{ start_date }} — {{ end_date }}
+                    </div>
+                </div>
+                <div class="text-end small text-muted">
+                    <div><strong>Rapor Tarihi:</strong> {{ today }}</div>
+                    <div><strong>Kullanıcı:</strong> {{ session.get('user_name', '') }}</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tarih Filtresi (Yazdırmada Gizlenir) -->
+        <div class="card border-0 shadow-sm mb-4 d-print-none">
             <div class="card-body p-4">
                 <form method="POST" action="{{ url_for('muhasebe') }}">
                     <div class="row g-3 align-items-end">
@@ -40,8 +59,8 @@
 
         {% if report_generated %}
 
-        <!-- Özet Kartlar -->
-        <div class="row g-3 mb-4">
+        <!-- Özet Kartlar (Yazdırmada Gizlenir) -->
+        <div class="row g-3 mb-4 d-print-none">
             <div class="col-md-4">
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body text-center p-4">
@@ -99,8 +118,8 @@
             </div>
         </div>
 
-        <!-- Kasa / Banka (Nakit & Kart) Dağılımı -->
-        <div class="row g-3 mb-4">
+        <!-- Kasa / Banka (Nakit & Kart) Dağılımı (Yazdırmada Gizlenir) -->
+        <div class="row g-3 mb-4 d-print-none">
             <div class="col-md-6">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body p-3 d-flex justify-content-between align-items-center">
@@ -135,9 +154,9 @@
             </div>
         </div>
 
-        <!-- Çeşit Bazında Özet -->
+        <!-- Çeşit Bazında Özet (Yazdırmada Gizlenir) -->
         {% if type_summary %}
-        <div class="card border-0 shadow-sm mb-4">
+        <div class="card border-0 shadow-sm mb-4 d-print-none">
             <div class="card-header bg-warning bg-opacity-10 border-0">
                 <h5 class="mb-0 fw-bold text-warning">
                     <i class="bi bi-pie-chart me-1"></i> Çeşit Bazında Özet
@@ -178,8 +197,8 @@
         </div>
         {% endif %}
 
-        <!-- Detaylı Alışlar -->
-        <div class="card border-0 shadow-sm mb-4">
+        <!-- Detaylı Alışlar (Yazdırmada Görünür) -->
+        <div class="card border-0 shadow-sm mb-4 print-card">
             <div class="card-header bg-success bg-opacity-10 border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-success">
                     <i class="bi bi-cart-plus me-1"></i> Alış Detayları
@@ -189,19 +208,19 @@
             <div class="card-body p-0">
                 {% if purchases %}
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 table-print">
                         <thead class="table-light">
                             <tr>
-                                <th>Tarih</th>
-                                <th>Tedarikçi</th>
-                                <th>Çeşit</th>
-                                <th class="text-end">Adet</th>
-                                <th class="text-end">Birim ₺</th>
-                                <th class="text-end">Toplam ₺</th>
-                                <th class="text-end">Ödenen ₺</th>
-                                <th class="text-end">Kalan Borç ₺</th>
-                                <th class="text-center">Tür</th>
-                                <th>Not</th>
+                                <th style="width: 11%;">Tarih</th>
+                                <th style="width: 17%;">Tedarikçi</th>
+                                <th style="width: 13%;">Çeşit</th>
+                                <th style="width: 7%;" class="text-end">Adet</th>
+                                <th style="width: 7%;" class="text-end">Birim ₺</th>
+                                <th style="width: 11%;" class="text-end">Toplam ₺</th>
+                                <th style="width: 11%;" class="text-end">Ödenen ₺</th>
+                                <th style="width: 11%;" class="text-end">Kalan Borç ₺</th>
+                                <th style="width: 5%;" class="text-center">Tür</th>
+                                <th style="width: 7%;">Not</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -209,8 +228,8 @@
                             {% set debt = p.total_price - p.paid_amount %}
                             <tr>
                                 <td>{{ p.date }}</td>
-                                <td class="fw-semibold">{{ p.supplier_name }}</td>
-                                <td><span class="badge bg-light text-dark">{{ p.egg_type_name }}</span></td>
+                                <td class="fw-semibold text-break">{{ p.supplier_name }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ p.egg_type_name }}</span></td>
                                 <td class="text-end">{{ p.quantity }}</td>
                                 <td class="text-end">{{ "%.2f"|format(p.unit_price) }}</td>
                                 <td class="text-end fw-bold">{{ "%.2f"|format(p.total_price) }}</td>
@@ -220,12 +239,12 @@
                                 </td>
                                 <td class="text-center">
                                     {% if p.payment_method == 'Kart' %}
-                                    <span class="badge bg-info-subtle text-dark border">💳 Kart</span>
+                                    <span class="badge bg-info-subtle text-dark border">Kart</span>
                                     {% else %}
-                                    <span class="badge bg-secondary-subtle text-dark border">💵 Nakit</span>
+                                    <span class="badge bg-secondary-subtle text-dark border">Nakit</span>
                                     {% endif %}
                                 </td>
-                                <td><small class="text-muted">{{ p.note or '-' }}</small></td>
+                                <td class="text-break"><small class="text-muted">{{ p.note or '-' }}</small></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -249,8 +268,8 @@
             </div>
         </div>
 
-        <!-- Detaylı Satışlar -->
-        <div class="card border-0 shadow-sm mb-4">
+        <!-- Detaylı Satışlar (Yazdırmada Görünür) -->
+        <div class="card border-0 shadow-sm mb-4 print-card">
             <div class="card-header bg-primary bg-opacity-10 border-0 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0 fw-bold text-primary">
                     <i class="bi bi-cash-coin me-1"></i> Satış Detayları
@@ -260,19 +279,19 @@
             <div class="card-body p-0">
                 {% if sales %}
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 table-print">
                         <thead class="table-light">
                             <tr>
-                                <th>Tarih</th>
-                                <th>Alıcı</th>
-                                <th>Çeşit</th>
-                                <th class="text-end">Adet</th>
-                                <th class="text-end">Birim ₺</th>
-                                <th class="text-end">Toplam ₺</th>
-                                <th class="text-end">Tahsil ₺</th>
-                                <th class="text-end">Kalan Alacak ₺</th>
-                                <th class="text-center">Tür</th>
-                                <th>Not</th>
+                                <th style="width: 11%;">Tarih</th>
+                                <th style="width: 17%;">Alıcı</th>
+                                <th style="width: 13%;">Çeşit</th>
+                                <th style="width: 7%;" class="text-end">Adet</th>
+                                <th style="width: 7%;" class="text-end">Birim ₺</th>
+                                <th style="width: 11%;" class="text-end">Toplam ₺</th>
+                                <th style="width: 11%;" class="text-end">Tahsil ₺</th>
+                                <th style="width: 11%;" class="text-end">Kalan Alacak ₺</th>
+                                <th style="width: 5%;" class="text-center">Tür</th>
+                                <th style="width: 7%;">Not</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -280,8 +299,8 @@
                             {% set rec = s.total_price - s.paid_amount %}
                             <tr>
                                 <td>{{ s.date }}</td>
-                                <td class="fw-semibold">{{ s.buyer_name }}</td>
-                                <td><span class="badge bg-light text-dark">{{ s.egg_type_name }}</span></td>
+                                <td class="fw-semibold text-break">{{ s.buyer_name }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ s.egg_type_name }}</span></td>
                                 <td class="text-end">{{ s.quantity }}</td>
                                 <td class="text-end">{{ "%.2f"|format(s.unit_price) }}</td>
                                 <td class="text-end fw-bold">{{ "%.2f"|format(s.total_price) }}</td>
@@ -291,12 +310,12 @@
                                 </td>
                                 <td class="text-center">
                                     {% if s.payment_method == 'Kart' %}
-                                    <span class="badge bg-info-subtle text-dark border">💳 Kart</span>
+                                    <span class="badge bg-info-subtle text-dark border">Kart</span>
                                     {% else %}
-                                    <span class="badge bg-secondary-subtle text-dark border">💵 Nakit</span>
+                                    <span class="badge bg-secondary-subtle text-dark border">Nakit</span>
                                     {% endif %}
                                 </td>
-                                <td><small class="text-muted">{{ s.note or '-' }}</small></td>
+                                <td class="text-break"><small class="text-muted">{{ s.note or '-' }}</small></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -320,9 +339,9 @@
             </div>
         </div>
 
-        <!-- Yazdırma -->
-        <div class="text-center mb-4">
-            <button onclick="window.print()" class="btn btn-outline-dark btn-lg">
+        <!-- Yazdırma Butonu (Yazdırmada Gizlenir) -->
+        <div class="text-center mb-4 d-print-none">
+            <button onclick="window.print()" class="btn btn-outline-dark btn-lg shadow-sm">
                 <i class="bi bi-printer me-1"></i> Raporu Yazdır / PDF Kaydet
             </button>
         </div>

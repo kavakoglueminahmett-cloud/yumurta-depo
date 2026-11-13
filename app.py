@@ -221,6 +221,38 @@ def satis():
     )
 
 
+# ── Tekil İşlem Fişi Yazdırma ────────────────────────────
+
+@app.route("/yazdir/tedarik/<int:pid>")
+@login_required
+def print_purchase(pid):
+    purchase = db.get_purchase_by_id(pid)
+    if not purchase:
+        flash("Tedarik kaydı bulunamadı.", "danger")
+        return redirect(url_for("tedarik"))
+    return render_template(
+        "islem_fisi.html",
+        tx_type="tedarik",
+        tx=purchase,
+        today=date.today().isoformat(),
+    )
+
+
+@app.route("/yazdir/satis/<int:sid>")
+@login_required
+def print_sale(sid):
+    sale = db.get_sale_by_id(sid)
+    if not sale:
+        flash("Satış kaydı bulunamadı.", "danger")
+        return redirect(url_for("satis"))
+    return render_template(
+        "islem_fisi.html",
+        tx_type="satis",
+        tx=sale,
+        today=date.today().isoformat(),
+    )
+
+
 # ── Muhasebe Raporu ───────────────────────────────────────
 
 @app.route("/muhasebe", methods=["GET", "POST"])
